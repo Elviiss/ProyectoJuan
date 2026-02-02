@@ -66,6 +66,7 @@ public class HelloApplication extends Application {
                 actiontarget.setText("Acceso denegado");
             }
         });
+        //
 
         VBox loginLayout = new VBox(15);
         loginLayout.setAlignment(Pos.CENTER);
