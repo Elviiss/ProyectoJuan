@@ -24,7 +24,7 @@ public class FirestoreConnection {
                 FirebaseApp.initializeApp(options);
             }
         }
-        this.db = FirestoreClient.getFirestore();
+        db = FirestoreClient.getFirestore();
         dataList = new java.util.HashMap<String, Object>();
     }
 

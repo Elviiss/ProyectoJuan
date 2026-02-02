@@ -66,7 +66,6 @@ public class HelloApplication extends Application {
                 actiontarget.setText("Acceso denegado");
             }
         });
-        //
 
         VBox loginLayout = new VBox(15);
         loginLayout.setAlignment(Pos.CENTER);
@@ -98,6 +97,7 @@ public class HelloApplication extends Application {
         lblBienvenida.setFont(Font.font("Arial", FontWeight.BOLD, 14));
 
         Region spacer = new Region();
+
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
         Button btnLogout = new Button("Cerrar Sesión");
@@ -117,14 +117,6 @@ public class HelloApplication extends Application {
 
         Label titulo = new Label("PANEL DE CONTROL: PROYECTOS");
         titulo.setFont(Font.font("Arial", FontWeight.BOLD, 24));
-
-        VBox listaProyectos = new VBox(10);
-        listaProyectos.setAlignment(Pos.CENTER);
-        listaProyectos.getChildren().addAll(
-                new Text("Proyecto 1 - Entrega final"),
-                new Text("Proyecto 2 - Parte 1"),
-                new Text("Proyecto 2 - Parte 2")
-        );
 
         Button btnCrear = new Button("Crear Nuevo Proyecto");
         btnCrear.setMinWidth(200);
@@ -157,7 +149,7 @@ public class HelloApplication extends Application {
         btnInforme.setMinWidth(200);
         btnInforme.setStyle("-fx-background-color: #2196F3; -fx-text-fill: white; -fx-font-weight: bold;");
 
-        contenidoCentral.getChildren().addAll(titulo, listaProyectos, btnCrear, btnVerProyectos, btnGestionar, btnInforme);
+        contenidoCentral.getChildren().addAll(titulo, btnCrear, btnVerProyectos, btnGestionar, btnInforme);
         mainLayout.getChildren().addAll(topBar, contenidoCentral);
 
         Scene proyectosScene = new Scene(mainLayout, 600, 600);
@@ -435,10 +427,14 @@ public class HelloApplication extends Application {
         Label titulo = new Label("PROYECTOS");
         titulo.setFont(Font.font("Arial", FontWeight.BOLD, 26));
 
+        TextField campoBusqueda = new TextField();
+        campoBusqueda.setPromptText("Buscar proyectos...");
+        String busqueda = campoBusqueda.getText().toString();
+
         Button btnVolver = new Button("Volver al Panel");
         btnVolver.setOnAction(e -> mostrarVentanaProyectos(stage, nombreUsuario, rol));
 
-        layout.getChildren().addAll(titulo, btnVolver);
+        layout.getChildren().addAll(titulo, campoBusqueda, btnVolver);
 
         Scene scene = new Scene(layout, 600, 600);
 
