@@ -54,28 +54,11 @@ public class FirestoreConnection {
                 }}).get();
 
         var query = db.collection("consultoria").get().get();
-        dataList.clear(); // Limpiamos para no duplicar
+        dataList.clear();
         query.forEach(d -> dataList.put(d.getId(), d.getData()));
     }
 
 
 
-    //todo Con este método agregas auditorías, cambiá el objeto Album por auditorias
-//    public void addAlbum (Album a) throws ExecutionException, InterruptedException {
-//        db.collection("albums").document(a.getNombre())
-//                .set(new java.util.HashMap<String, String>() { {
-//                    put("Nombre: ", a.getNombre());
-//                    put("Artista: ", a.getArtista());
-//                }}).get();
-//
-//        var query = db.collection("albums").get().get();
-//        query.forEach(d ->dataList.put(d.getId(),d.getData()));
-//    }
-
-    //todo Ejemplo para leer auditorias
-//    public void readAlbums() throws ExecutionException, InterruptedException {
-//        var query = db.collection("albums").get().get();
-//        query.forEach(r -> System.out.println(r.getId()+", "+r.getData()));
-//    }
 }
 

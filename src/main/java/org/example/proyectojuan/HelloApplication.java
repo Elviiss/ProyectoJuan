@@ -7,6 +7,7 @@ import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
+import javafx.scene.chart.*;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
@@ -136,7 +137,7 @@ public class HelloApplication extends Application {
 
         Button btnConsultoria = new Button("Consultoría");
         btnConsultoria.setMinWidth(200);
-        btnConsultoria.setStyle("-fx-background-color: #673AB7; -fx-text-fill: white; -fx-font-weight: bold;");
+        btnConsultoria.setStyle("-fx-background-color: #2196F3; -fx-text-fill: white; -fx-font-weight: bold;");
 
         btnConsultoria.setOnAction(e -> mostrarVentanaConsultoria(stage, nombreUsuario, rol));
 
@@ -154,6 +155,8 @@ public class HelloApplication extends Application {
         Button btnInforme = new Button("Informe de Estadísticas");
         btnInforme.setMinWidth(200);
         btnInforme.setStyle("-fx-background-color: #2196F3; -fx-text-fill: white; -fx-font-weight: bold;");
+
+        btnInforme.setOnAction(e -> mostrarVentanaEstadisticas(stage, nombreUsuario, rol));
 
         contenidoCentral.getChildren().addAll(titulo, btnCrear, btnVerProyectos, btnGestionar, btnInforme, btnConsultoria);
         mainLayout.getChildren().addAll(topBar, contenidoCentral);
@@ -176,18 +179,14 @@ public class HelloApplication extends Application {
         Label titulo = new Label("CONSULTORÍA: REGISTRO DE ACTIVIDAD");
         titulo.setFont(Font.font("Arial", FontWeight.BOLD, 22));
 
-        // Contenedor para las filas de la base de datos
         VBox listaLogs = new VBox(10);
         listaLogs.setPadding(new Insets(10));
 
         try {
-            // 1. Obtenemos la base de datos
             Firestore db = FirestoreConnection.getInstance().db();
 
-            // 2. Traemos la colección "consultoria"
             var querySnapshot = db.collection("consultoria").get().get();
 
-            // 3. Recorremos los documentos y los añadimos a la interfaz
             for (var doc : querySnapshot.getDocuments()) {
                 String usuarioLog = doc.getString("usuario");
                 String accionLog = doc.getString("accion");
@@ -195,21 +194,18 @@ public class HelloApplication extends Application {
                 HBox fila = new HBox(15);
                 fila.setStyle("-fx-background-color: #f4f4f4; -fx-padding: 10; -fx-border-color: #ccc;");
                 fila.getChildren().addAll(
-                        new Text("👤 " + usuarioLog),
-                        new Text("➔"),
+                        new Text(usuarioLog + ":"),
                         new Text(accionLog)
                 );
                 listaLogs.getChildren().add(fila);
             }
 
         }  catch (Exception e) {
-        // Esto imprimirá en la consola el error real (la "causa")
         System.out.println("CAUSA DEL ERROR: " + e.getCause());
         e.printStackTrace();
         listaLogs.getChildren().add(new Text("Error: " + e.getMessage()));
     }
 
-        // Usamos un ScrollPane por si hay muchos registros
         ScrollPane scroll = new ScrollPane(listaLogs);
         scroll.setFitToWidth(true);
         scroll.setPrefHeight(400);
@@ -270,7 +266,7 @@ public class HelloApplication extends Application {
         btnAnadir.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white;");
         btnAnadir.setOnAction(e -> {
             try {
-                Auditoria log = new Auditoria("Usuario añadido ", nombreUsuario);
+                Auditoria log = new Auditoria("Nuevo usuario añadido ", nombreUsuario);
                 FirestoreConnection.getInstance().registrarActividad(log);
             } catch (Exception ex) {
                 ex.printStackTrace();
@@ -291,7 +287,7 @@ public class HelloApplication extends Application {
                 try {
                     int id = Integer.parseInt(idTexto);
                     try {
-                        Auditoria log = new Auditoria("Usuario editado: ", nombreUsuario);
+                        Auditoria log = new Auditoria("Usuario editado (ID: " + id + ") ", nombreUsuario);
                         FirestoreConnection.getInstance().registrarActividad(log);
                     } catch (Exception ex) {
                         ex.printStackTrace();
@@ -314,7 +310,7 @@ public class HelloApplication extends Application {
                     int id = Integer.parseInt(idTexto);
                     if (id == 1) return;
 
-                    eliminarUsuarioBD(id); // <--- Acción en MySQL
+                    eliminarUsuarioBD(id);
                     try {
                         Auditoria log = new Auditoria("Usuario Borrado (ID: " + id + ")", nombreUsuario);
                         FirestoreConnection.getInstance().registrarActividad(log);
@@ -552,7 +548,7 @@ public class HelloApplication extends Application {
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return null; // Si no hay coincidencia, retorna null
+        return null;
     }
 
     private void mostrarFormularioNuevoProyecto(Stage stage, String nombreUsuario, String rol) {
@@ -645,7 +641,7 @@ public class HelloApplication extends Application {
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return null; // Si no hay coincidencia, retorna null
+        return null;
     }
 
     private void guardarProyecto(String nombre, String descripcion) {
@@ -667,6 +663,66 @@ public class HelloApplication extends Application {
         } catch (SQLException e) {
             System.err.println("Error al guardar proyecto: " + e.getMessage());
         }
+    }
+
+    private void mostrarVentanaEstadisticas(Stage stage, String nombreUsuario, String rol) {
+        VBox layout = new VBox(20);
+        layout.setAlignment(Pos.CENTER);
+        layout.setPadding(new Insets(20));
+
+        Label titulo = new Label("ESTADÍSTICAS DEL SISTEMA");
+        titulo.setFont(Font.font("Arial", FontWeight.BOLD, 22));
+
+        int totalProyectos = obtenerConteo("SELECT COUNT(*) FROM proyectos");
+        int totalUsuarios = obtenerConteo("SELECT COUNT(*) FROM usuarios");
+
+        PieChart pieChart = new PieChart();
+        pieChart.getData().add(new PieChart.Data("Proyectos (" + totalProyectos + ")", totalProyectos));
+        pieChart.getData().add(new PieChart.Data("Usuarios (" + totalUsuarios + ")", totalUsuarios));
+
+        CategoryAxis xAxis = new CategoryAxis();
+        NumberAxis yAxis = new NumberAxis();
+        BarChart<String, Number> barChart = new BarChart<>(xAxis, yAxis);
+        xAxis.setLabel("Categoría");
+        yAxis.setLabel("Cantidad");
+
+        XYChart.Series<String, Number> series = new XYChart.Series<>();
+        series.getData().add(new XYChart.Data<>("Proyectos", totalProyectos));
+        series.getData().add(new XYChart.Data<>("Usuarios", totalUsuarios));
+        barChart.getData().add(series);
+
+        HBox chartsContainer = new HBox(30, pieChart, barChart);
+        chartsContainer.setAlignment(Pos.CENTER);
+
+        Button btnVolver = new Button("Volver al Panel");
+        btnVolver.setStyle("-fx-background-color: #757575; -fx-text-fill: white;");
+        btnVolver.setOnAction(e -> mostrarVentanaProyectos(stage, nombreUsuario, rol));
+
+        layout.getChildren().addAll(titulo, chartsContainer, btnVolver);
+
+        Scene scene = new Scene(layout, 600, 600);
+        stage.setScene(scene);
+
+        try {
+            scene.getStylesheets().add(getClass().getResource("HelloApplication.css").toExternalForm());
+        } catch (Exception e) {
+            System.out.println("CSS no encontrado, continuando sin estilos externos.");
+        }
+    }
+
+    private int obtenerConteo(String sql) {
+        String url = "jdbc:mysql://localhost:3306/aplicacion_usuarios_sge";
+        try (Connection conexion = DriverManager.getConnection(url, "root", "root");
+             Statement st = conexion.createStatement();
+             ResultSet rs = st.executeQuery(sql)) {
+
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return 0;
     }
 
     public static void main(String[] args) {
