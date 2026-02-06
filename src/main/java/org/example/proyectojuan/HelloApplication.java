@@ -2,6 +2,8 @@ package org.example.proyectojuan;
 
 import com.google.cloud.firestore.Firestore;
 import javafx.application.Application;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -507,12 +509,21 @@ public class HelloApplication extends Application {
 
         TextField campoBusqueda = new TextField();
         campoBusqueda.setPromptText("Buscar proyectos...");
-        String busqueda = campoBusqueda.getText().toString();
+        Label etqPrueba = new Label();
+        etqPrueba.setText(mostrarProyectos(""));
 
+        Button btnBuscar = new Button("Buscar");
+        btnBuscar.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent actionEvent) {
+                String busqueda = "WHERE nombre_proyecto = '" + campoBusqueda.getText() +  "'";
+                etqPrueba.setText(mostrarProyectos(busqueda));
+            }
+        });
         Button btnVolver = new Button("Volver al Panel");
         btnVolver.setOnAction(e -> mostrarVentanaProyectos(stage, nombreUsuario, rol));
 
-        layout.getChildren().addAll(titulo, campoBusqueda, btnVolver);
+        layout.getChildren().addAll(titulo, campoBusqueda, btnBuscar, etqPrueba, btnVolver);
 
         Scene scene = new Scene(layout, 600, 600);
 
@@ -523,6 +534,25 @@ public class HelloApplication extends Application {
         }
 
         stage.setScene(scene);
+    }
+
+    private String mostrarProyectos(String busqueda) {
+        String url = "jdbc:mysql://localhost:3306/aplicacion_usuarios_sge";
+        String userBD = "root";
+        String passBD = "root";
+
+        String sql = "SELECT nombre_proyecto FROM proyectos " + busqueda;
+
+        try (Connection conexion = DriverManager.getConnection(url, userBD, passBD);
+             PreparedStatement pst = conexion.prepareStatement(sql)) {
+            ResultSet rs = pst.executeQuery();
+            if (rs.next()) {
+                return rs.getString("nombre_proyecto");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null; // Si no hay coincidencia, retorna null
     }
 
     private void mostrarFormularioNuevoProyecto(Stage stage, String nombreUsuario, String rol) {
