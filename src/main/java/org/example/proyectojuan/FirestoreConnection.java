@@ -17,7 +17,7 @@ public class FirestoreConnection {
 
     private FirestoreConnection() throws IOException {
         if(FirebaseApp.getApps().isEmpty()){
-            try (FileInputStream in = new FileInputStream("proyecto-juan-8d7c7-firebase-adminsdk-fbsvc-dfd7bc9ec9.json")){
+            try (FileInputStream in = new FileInputStream("proyecto-juan-8d7c7-firebase-adminsdk-fbsvc-3be229da57.json")){
                 FirebaseOptions options = FirebaseOptions.builder()
                         .setCredentials(GoogleCredentials.fromStream(in))
                         .build();
@@ -43,6 +43,22 @@ public class FirestoreConnection {
     public Firestore db() { return db; }
 
     public HashMap<String, Object> getDataList() { return dataList; }
+
+
+    public void registrarActividad(Auditoria a) throws java.util.concurrent.ExecutionException, InterruptedException {
+        db.collection("consultoria").document()
+                .set(new java.util.HashMap<String, Object>() {{
+                    put("accion", a.getAccion());
+                    put("usuario", a.getUsuario());
+                    put("fecha", com.google.cloud.Timestamp.now().toString());
+                }}).get();
+
+        var query = db.collection("consultoria").get().get();
+        dataList.clear(); // Limpiamos para no duplicar
+        query.forEach(d -> dataList.put(d.getId(), d.getData()));
+    }
+
+
 
     //todo Con este método agregas auditorías, cambiá el objeto Album por auditorias
 //    public void addAlbum (Album a) throws ExecutionException, InterruptedException {

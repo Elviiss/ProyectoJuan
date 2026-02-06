@@ -1,13 +1,11 @@
 package org.example.proyectojuan;
 
+import com.google.cloud.firestore.Firestore;
 import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.PasswordField;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.VBox;
@@ -134,6 +132,12 @@ public class HelloApplication extends Application {
 
         btnVerProyectos.setOnAction(e -> mostrarVentanaListaProyectos(stage, nombreUsuario, rol));
 
+        Button btnConsultoria = new Button("Consultoría");
+        btnConsultoria.setMinWidth(200);
+        btnConsultoria.setStyle("-fx-background-color: #673AB7; -fx-text-fill: white; -fx-font-weight: bold;");
+
+        btnConsultoria.setOnAction(e -> mostrarVentanaConsultoria(stage, nombreUsuario, rol));
+
         Button btnGestionar = new Button("Gestionar Usuarios");
         btnGestionar.setMinWidth(200);
         btnGestionar.setStyle("-fx-background-color: #2196F3; -fx-text-fill: white; -fx-font-weight: bold;");
@@ -149,7 +153,7 @@ public class HelloApplication extends Application {
         btnInforme.setMinWidth(200);
         btnInforme.setStyle("-fx-background-color: #2196F3; -fx-text-fill: white; -fx-font-weight: bold;");
 
-        contenidoCentral.getChildren().addAll(titulo, btnCrear, btnVerProyectos, btnGestionar, btnInforme);
+        contenidoCentral.getChildren().addAll(titulo, btnCrear, btnVerProyectos, btnGestionar, btnInforme, btnConsultoria);
         mainLayout.getChildren().addAll(topBar, contenidoCentral);
 
         Scene proyectosScene = new Scene(mainLayout, 600, 600);
@@ -160,6 +164,61 @@ public class HelloApplication extends Application {
         } catch (Exception e) {
             System.out.println("CSS no encontrado, continuando sin estilos externos.");
         }
+    }
+
+    private void mostrarVentanaConsultoria(Stage stage, String nombreUsuario, String rol) {
+        VBox mainLayout = new VBox(20);
+        mainLayout.setAlignment(Pos.TOP_CENTER);
+        mainLayout.setPadding(new Insets(20));
+
+        Label titulo = new Label("CONSULTORÍA: REGISTRO DE ACTIVIDAD");
+        titulo.setFont(Font.font("Arial", FontWeight.BOLD, 22));
+
+        // Contenedor para las filas de la base de datos
+        VBox listaLogs = new VBox(10);
+        listaLogs.setPadding(new Insets(10));
+
+        try {
+            // 1. Obtenemos la base de datos
+            Firestore db = FirestoreConnection.getInstance().db();
+
+            // 2. Traemos la colección "consultoria"
+            var querySnapshot = db.collection("consultoria").get().get();
+
+            // 3. Recorremos los documentos y los añadimos a la interfaz
+            for (var doc : querySnapshot.getDocuments()) {
+                String usuarioLog = doc.getString("usuario");
+                String accionLog = doc.getString("accion");
+
+                HBox fila = new HBox(15);
+                fila.setStyle("-fx-background-color: #f4f4f4; -fx-padding: 10; -fx-border-color: #ccc;");
+                fila.getChildren().addAll(
+                        new Text("👤 " + usuarioLog),
+                        new Text("➔"),
+                        new Text(accionLog)
+                );
+                listaLogs.getChildren().add(fila);
+            }
+
+        }  catch (Exception e) {
+        // Esto imprimirá en la consola el error real (la "causa")
+        System.out.println("CAUSA DEL ERROR: " + e.getCause());
+        e.printStackTrace();
+        listaLogs.getChildren().add(new Text("Error: " + e.getMessage()));
+    }
+
+        // Usamos un ScrollPane por si hay muchos registros
+        ScrollPane scroll = new ScrollPane(listaLogs);
+        scroll.setFitToWidth(true);
+        scroll.setPrefHeight(400);
+
+        Button btnVolver = new Button("Volver al Panel");
+        btnVolver.setOnAction(e -> mostrarVentanaProyectos(stage, nombreUsuario, rol));
+
+        mainLayout.getChildren().addAll(titulo, scroll, btnVolver);
+
+        Scene scene = new Scene(mainLayout, 600, 600);
+        stage.setScene(scene);
     }
 
     private void mostrarVentanaGestionUsuarios(Stage stage, String nombreUsuario, String rol) {
@@ -207,7 +266,15 @@ public class HelloApplication extends Application {
 
         Button btnAnadir = new Button("Añadir Usuario");
         btnAnadir.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white;");
-        btnAnadir.setOnAction(e -> mostrarFormularioNuevoUsuario(stage, nombreUsuario, rol));
+        btnAnadir.setOnAction(e -> {
+            try {
+                Auditoria log = new Auditoria("Usuario añadido ", nombreUsuario);
+                FirestoreConnection.getInstance().registrarActividad(log);
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+            mostrarFormularioNuevoUsuario(stage, nombreUsuario, rol);
+        });
 
         Button btnEditar = new Button("Editar Usuario");
         btnEditar.setStyle("-fx-background-color: #2196F3; -fx-text-fill: white;");
@@ -221,6 +288,12 @@ public class HelloApplication extends Application {
             if (!idTexto.isEmpty()) {
                 try {
                     int id = Integer.parseInt(idTexto);
+                    try {
+                        Auditoria log = new Auditoria("Usuario editado: ", nombreUsuario);
+                        FirestoreConnection.getInstance().registrarActividad(log);
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                    }
                     mostrarFormularioEditarUsuario(stage, nombreUsuario, rol, id);
                 } catch (NumberFormatException ex) {
                     System.out.println("ID no válido");
@@ -237,11 +310,16 @@ public class HelloApplication extends Application {
             if (!idTexto.isEmpty()) {
                 try {
                     int id = Integer.parseInt(idTexto);
-                    if (id == 1) {
-                        System.out.println("Acción bloqueada: No se puede borrar al administrador principal (ID 1).");
-                        return;
+                    if (id == 1) return;
+
+                    eliminarUsuarioBD(id); // <--- Acción en MySQL
+                    try {
+                        Auditoria log = new Auditoria("Usuario Borrado (ID: " + id + ")", nombreUsuario);
+                        FirestoreConnection.getInstance().registrarActividad(log);
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
                     }
-                    eliminarUsuarioBD(id);
+
                     mostrarVentanaGestionUsuarios(stage, nombreUsuario, rol);
                 } catch (NumberFormatException ex) {
                     System.out.println("Por favor, introduce un ID numérico válido.");
@@ -482,6 +560,13 @@ public class HelloApplication extends Application {
 
             if (!nombre.isEmpty()) {
                 guardarProyecto(nombre, descripcion);
+
+                try {
+                    Auditoria log = new Auditoria("Proyecto Creado: " + nombre, nombreUsuario);
+                    FirestoreConnection.getInstance().registrarActividad(log);
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                }
 
                 mostrarVentanaProyectos(stage, nombreUsuario, rol);
             } else {
