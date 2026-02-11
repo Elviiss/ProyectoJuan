@@ -496,40 +496,163 @@ public class HelloApplication extends Application {
     }
 
     private void mostrarVentanaListaProyectos(Stage stage, String nombreUsuario, String rol) {
-        VBox layout = new VBox(20);
-        layout.setAlignment(Pos.CENTER);
-        layout.setPadding(new Insets(30));
+        VBox layout = new VBox(15);
+        layout.setAlignment(Pos.TOP_CENTER);
+        layout.setPadding(new Insets(20));
 
-        Label titulo = new Label("PROYECTOS");
-        titulo.setFont(Font.font("Arial", FontWeight.BOLD, 26));
+        Label titulo = new Label("BUSCADOR DE PROYECTOS");
+        titulo.setFont(Font.font("Arial", FontWeight.BOLD, 20));
 
         TextField campoBusqueda = new TextField();
-        campoBusqueda.setPromptText("Buscar proyectos...");
-        Label etqPrueba = new Label();
-        etqPrueba.setText(mostrarProyectos(""));
+        campoBusqueda.setPromptText("Escribe el nombre del proyecto...");
+        campoBusqueda.setMaxWidth(300);
 
         Button btnBuscar = new Button("Buscar");
-        btnBuscar.setOnAction(new EventHandler<ActionEvent>() {
-            @Override
-            public void handle(ActionEvent actionEvent) {
-                String busqueda = "WHERE nombre_proyecto = '" + campoBusqueda.getText() +  "'";
-                etqPrueba.setText(mostrarProyectos(busqueda));
+        btnBuscar.setStyle("-fx-background-color: #2196F3; -fx-text-fill: white;");
+
+        VBox listaResultados = new VBox(10);
+        listaResultados.setPadding(new Insets(10));
+
+        btnBuscar.setOnAction(e -> {
+            listaResultados.getChildren().clear(); // Borramos lo anterior
+            String textoBusqueda = campoBusqueda.getText();
+
+            String sql = "SELECT nombre_proyecto, descripcion, tipo FROM proyectos WHERE nombre_proyecto LIKE ?";
+
+            try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/aplicacion_usuarios_sge", "root", "root");
+                 PreparedStatement pst = conn.prepareStatement(sql)) {
+
+                pst.setString(1, "%" + textoBusqueda + "%");
+                ResultSet rs = pst.executeQuery();
+
+                while (rs.next()) {
+                    String nombre = rs.getString("nombre_proyecto");
+                    String tipo = rs.getString("tipo");
+
+                    HBox fila = new HBox(10);
+                    fila.setAlignment(Pos.CENTER_LEFT);
+                    fila.setStyle("-fx-background-color: #eeeeee; -fx-padding: 10; -fx-border-radius: 5;");
+
+                    Label lblNombre = new Label(nombre + " [" + tipo + "]");
+                    Region spacer = new Region();
+                    HBox.setHgrow(spacer, Priority.ALWAYS);
+
+                    Button btnEditar = new Button("Editar");
+                    Button btnDescargar = new Button("Descargar");
+
+                    if (!"TXT".equalsIgnoreCase(tipo)) {
+                        btnEditar.setDisable(true);
+                        btnDescargar.setDisable(true);
+                    }
+
+                    btnEditar.setOnAction(ev -> ventanaEditarContenidoTXT(stage, nombre, nombreUsuario, rol));
+                    btnDescargar.setOnAction(ev -> descargarArchivo(nombre));
+
+                    fila.getChildren().addAll(lblNombre, spacer, btnEditar, btnDescargar);
+                    listaResultados.getChildren().add(fila);
+                }
+
+                if (listaResultados.getChildren().isEmpty()) {
+                    listaResultados.getChildren().add(new Label("No se encontraron proyectos con: " + textoBusqueda));
+                }
+
+            } catch (SQLException ex) {
+                ex.printStackTrace();
             }
         });
+
         Button btnVolver = new Button("Volver al Panel");
         btnVolver.setOnAction(e -> mostrarVentanaProyectos(stage, nombreUsuario, rol));
 
-        layout.getChildren().addAll(titulo, campoBusqueda, btnBuscar, etqPrueba, btnVolver);
+        layout.getChildren().addAll(titulo, campoBusqueda, btnBuscar, new ScrollPane(listaResultados), btnVolver);
+        stage.setScene(new Scene(layout, 600, 600));
+    }
 
-        Scene scene = new Scene(layout, 600, 600);
+    private void actualizarListaConAcciones(VBox contenedor, String filtro, Stage stage, String user, String rol) {
+        String sql = "SELECT nombre_proyecto, descripcion, tipo FROM proyectos WHERE nombre_proyecto LIKE ?";
+
+        try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/aplicacion_usuarios_sge", "root", "root");
+             PreparedStatement pst = conn.prepareStatement(sql)) {
+
+            pst.setString(1, "%" + filtro + "%");
+            ResultSet rs = pst.executeQuery();
+
+            while (rs.next()) {
+                String nombre = rs.getString("nombre_proyecto");
+                String desc = rs.getString("descripcion");
+                String tipo = rs.getString("tipo");
+
+                HBox fila = new HBox(15);
+                fila.setAlignment(Pos.CENTER_LEFT);
+                fila.setStyle("-fx-padding: 10; -fx-border-color: #ddd; -fx-background-color: white;");
+
+                Label info = new Label(nombre + " (" + tipo + ")");
+                Region spacer = new Region();
+                HBox.setHgrow(spacer, Priority.ALWAYS);
+
+                Button btnDescargar = new Button("Descargar");
+                Button btnEditar = new Button("Editar");
+
+                if (!"TXT".equalsIgnoreCase(tipo)) {
+                    btnDescargar.setDisable(true);
+                    btnEditar.setDisable(true);
+                }
+
+                btnDescargar.setOnAction(e -> descargarArchivo(nombre));
+                btnEditar.setOnAction(e -> ventanaEditarContenidoTXT(stage, nombre, user, rol));
+
+                fila.getChildren().addAll(info, spacer, btnEditar, btnDescargar);
+                contenedor.getChildren().add(fila);
+            }
+        } catch (SQLException e) { e.printStackTrace(); }
+    }
+
+    private void ventanaEditarContenidoTXT(Stage stage, String nombreProyecto, String user, String rol) {
+        VBox layout = new VBox(10);
+        layout.setPadding(new Insets(20));
+
+        Label lbl = new Label("Editando contenido de: " + nombreProyecto);
+        TextArea areaTexto = new TextArea();
+
+        String nombreArchivo = "proyectos_archivos/" + nombreProyecto.replaceAll("[^a-zA-Z0-9.-]", "_") + ".txt";
 
         try {
-            scene.getStylesheets().add(getClass().getResource("HelloApplication.css").toExternalForm());
-        } catch (Exception e) {
-            System.out.println("CSS no encontrado.");
-        }
+            areaTexto.setText(java.nio.file.Files.readString(java.nio.file.Paths.get(nombreArchivo)));
+        } catch (IOException e) { areaTexto.setText("Error al cargar o archivo no encontrado."); }
 
-        stage.setScene(scene);
+        Button btnGuardar = new Button("Guardar Cambios");
+        btnGuardar.setOnAction(e -> {
+            try {
+                java.nio.file.Files.writeString(java.nio.file.Paths.get(nombreArchivo), areaTexto.getText());
+                mostrarVentanaListaProyectos(stage, user, rol);
+            } catch (IOException ex) { ex.printStackTrace(); }
+        });
+
+        Button btnVolver = new Button("Volver");
+        btnVolver.setOnAction(e -> mostrarVentanaListaProyectos(stage, user, rol));
+
+        layout.getChildren().addAll(lbl, areaTexto, btnGuardar, btnVolver);
+        stage.setScene(new Scene(layout, 500, 400));
+    }
+
+    private void descargarArchivo(String nombreProyecto) {
+        javafx.stage.FileChooser fileChooser = new javafx.stage.FileChooser();
+        fileChooser.setTitle("Guardar Proyecto");
+        fileChooser.setInitialFileName(nombreProyecto + ".txt");
+
+        java.io.File destino = fileChooser.showSaveDialog(null);
+        if (destino != null) {
+            try {
+                String origenPath = "proyectos_archivos/" + nombreProyecto.replaceAll("[^a-zA-Z0-9.-]", "_") + ".txt";
+                java.nio.file.Files.copy(
+                        java.nio.file.Paths.get(origenPath),
+                        destino.toPath(),
+                        java.nio.file.StandardCopyOption.REPLACE_EXISTING
+                );
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     private String mostrarProyectos(String busqueda) {
@@ -569,6 +692,15 @@ public class HelloApplication extends Application {
         txtDescripcion.setPromptText("Descripción del proyecto");
         txtDescripcion.setMaxWidth(300);
 
+        DatePicker pickerFecha = new DatePicker();
+        pickerFecha.setPromptText("Selecciona la fecha");
+        pickerFecha.setMaxWidth(300);
+
+        ComboBox<String> comboTipo = new ComboBox<>();
+        comboTipo.getItems().addAll("PDF", "TXT", "DOCX", "Imagen", "Código");
+        comboTipo.setPromptText("Tipo de Proyecto");
+        comboTipo.setMaxWidth(300);
+
         Label lblResponsable = new Label("Responsable del proyecto:");
         TextField txtResponsable = new TextField();
         txtResponsable.setPromptText("Nombre del encargado");
@@ -583,9 +715,13 @@ public class HelloApplication extends Application {
         btnFinalizar.setOnAction(e -> {
             String nombre = txtNombre.getText();
             String descripcion = txtDescripcion.getText();
+            java.sql.Date fecha = (pickerFecha.getValue() != null)
+                    ? java.sql.Date.valueOf(pickerFecha.getValue())
+                    : null;
+            String tipo = (comboTipo.getValue() != null) ? comboTipo.getValue() : "Desconocido";
 
             if (!nombre.isEmpty()) {
-                guardarProyecto(nombre, descripcion);
+                guardarProyecto(nombre, descripcion, fecha, tipo);
 
                 try {
                     Auditoria log = new Auditoria("Proyecto Creado: " + nombre, nombreUsuario);
@@ -602,9 +738,10 @@ public class HelloApplication extends Application {
 
         formularioLayout.getChildren().addAll(
                 titulo,
-                lblNombre, txtNombre,
-                lblDescripcion, txtDescripcion,
-                lblResponsable, txtResponsable,
+                new Label("Nombre:"), txtNombre,
+                new Label("Descripción:"), txtDescripcion,
+                new Label("Fecha:"), pickerFecha,
+                new Label("Tipo:"), comboTipo,
                 btnFinalizar, btnVolver
         );
 
@@ -644,24 +781,52 @@ public class HelloApplication extends Application {
         return null;
     }
 
-    private void guardarProyecto(String nombre, String descripcion) {
+    private void guardarProyecto(String nombre, String descripcion, java.sql.Date fecha, String tipo) {
         String url = "jdbc:mysql://localhost:3306/aplicacion_usuarios_sge";
         String userBD = "root";
         String passBD = "root";
 
-        String sql = "INSERT INTO proyectos (nombre_proyecto, descripcion) VALUES (?, ?)";
+        String sql = "INSERT INTO proyectos (nombre_proyecto, descripcion, fecha, tipo) VALUES (?, ?, ?, ?)";
+        if ("TXT".equalsIgnoreCase(tipo)) {
+            try {
+                java.nio.file.Path carpeta = java.nio.file.Paths.get("proyectos_archivos");
+                if (!java.nio.file.Files.exists(carpeta)) java.nio.file.Files.createDirectories(carpeta);
 
+                String nombreLimpio = nombre.replaceAll("[^a-zA-Z0-9.-]", "_") + ".txt";
+                java.nio.file.Files.writeString(carpeta.resolve(nombreLimpio), descripcion);
+                System.out.println("Archivo TXT generado físicamente en: " + carpeta.toAbsolutePath());
+            } catch (IOException e) {
+                System.out.println("Error al crear el archivo: " + e.getMessage());
+            }
+        }
         try (Connection conexion = DriverManager.getConnection(url, userBD, passBD);
              PreparedStatement pst = conexion.prepareStatement(sql)) {
 
             pst.setString(1, nombre);
             pst.setString(2, descripcion);
+            pst.setDate(3, fecha);
+            pst.setString(4, tipo);
 
             pst.executeUpdate();
             System.out.println("Proyecto guardado con éxito en la BD");
 
         } catch (SQLException e) {
             System.err.println("Error al guardar proyecto: " + e.getMessage());
+        }
+    }
+
+    private void crearArchivoTexto(String nombre, String contenido) {
+        try {
+            java.nio.file.Path ruta = java.nio.file.Paths.get("proyectos_archivos");
+            if (!java.nio.file.Files.exists(ruta)) {
+                java.nio.file.Files.createDirectories(ruta);
+            }
+
+            String nombreArchivo = nombre.replaceAll("[^a-zA-Z0-9.-]", "_") + ".txt";
+            java.nio.file.Files.writeString(ruta.resolve(nombreArchivo), contenido);
+            System.out.println("Archivo guardado: " + nombreArchivo);
+        } catch (IOException e) {
+            System.err.println("Error al crear el archivo físico: " + e.getMessage());
         }
     }
 
