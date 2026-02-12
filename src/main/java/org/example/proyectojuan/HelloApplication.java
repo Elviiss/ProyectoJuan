@@ -568,45 +568,6 @@ public class HelloApplication extends Application {
         stage.setScene(new Scene(layout, 600, 600));
     }
 
-    private void actualizarListaConAcciones(VBox contenedor, String filtro, Stage stage, String user, String rol) {
-        String sql = "SELECT nombre_proyecto, descripcion, tipo FROM proyectos WHERE nombre_proyecto LIKE ?";
-
-        try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/aplicacion_usuarios_sge", "root", "root");
-             PreparedStatement pst = conn.prepareStatement(sql)) {
-
-            pst.setString(1, "%" + filtro + "%");
-            ResultSet rs = pst.executeQuery();
-
-            while (rs.next()) {
-                String nombre = rs.getString("nombre_proyecto");
-                String desc = rs.getString("descripcion");
-                String tipo = rs.getString("tipo");
-
-                HBox fila = new HBox(15);
-                fila.setAlignment(Pos.CENTER_LEFT);
-                fila.setStyle("-fx-padding: 10; -fx-border-color: #ddd; -fx-background-color: white;");
-
-                Label info = new Label(nombre + " (" + tipo + ")");
-                Region spacer = new Region();
-                HBox.setHgrow(spacer, Priority.ALWAYS);
-
-                Button btnDescargar = new Button("Descargar");
-                Button btnEditar = new Button("Editar");
-
-                if (!"TXT".equalsIgnoreCase(tipo)) {
-                    btnDescargar.setDisable(true);
-                    btnEditar.setDisable(true);
-                }
-
-                btnDescargar.setOnAction(e -> descargarArchivo(nombre));
-                btnEditar.setOnAction(e -> ventanaEditarContenidoTXT(stage, nombre, user, rol));
-
-                fila.getChildren().addAll(info, spacer, btnEditar, btnDescargar);
-                contenedor.getChildren().add(fila);
-            }
-        } catch (SQLException e) { e.printStackTrace(); }
-    }
-
     private void ventanaEditarContenidoTXT(Stage stage, String nombreProyecto, String user, String rol) {
         VBox layout = new VBox(10);
         layout.setPadding(new Insets(20));
@@ -655,25 +616,6 @@ public class HelloApplication extends Application {
         }
     }
 
-    private String mostrarProyectos(String busqueda) {
-        String url = "jdbc:mysql://localhost:3306/aplicacion_usuarios_sge";
-        String userBD = "root";
-        String passBD = "root";
-
-        String sql = "SELECT nombre_proyecto FROM proyectos " + busqueda;
-
-        try (Connection conexion = DriverManager.getConnection(url, userBD, passBD);
-             PreparedStatement pst = conexion.prepareStatement(sql)) {
-            ResultSet rs = pst.executeQuery();
-            if (rs.next()) {
-                return rs.getString("nombre_proyecto");
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
     private void mostrarFormularioNuevoProyecto(Stage stage, String nombreUsuario, String rol) {
         VBox formularioLayout = new VBox(15);
         formularioLayout.setAlignment(Pos.CENTER);
@@ -682,12 +624,10 @@ public class HelloApplication extends Application {
         Label titulo = new Label("NUEVO PROYECTO");
         titulo.setFont(Font.font("Arial", FontWeight.BOLD, 22));
 
-        Label lblNombre = new Label("Nombre del Proyecto:");
         TextField txtNombre = new TextField();
-        txtNombre.setPromptText("Ej: Sistema de Ventas");
+        txtNombre.setPromptText("Nombre del proyecto");
         txtNombre.setMaxWidth(300);
 
-        Label lblDescripcion = new Label("Descripción:");
         TextField txtDescripcion = new TextField();
         txtDescripcion.setPromptText("Descripción del proyecto");
         txtDescripcion.setMaxWidth(300);
@@ -700,11 +640,6 @@ public class HelloApplication extends Application {
         comboTipo.getItems().addAll("PDF", "TXT", "DOCX", "Imagen", "Código");
         comboTipo.setPromptText("Tipo de Proyecto");
         comboTipo.setMaxWidth(300);
-
-        Label lblResponsable = new Label("Responsable del proyecto:");
-        TextField txtResponsable = new TextField();
-        txtResponsable.setPromptText("Nombre del encargado");
-        txtResponsable.setMaxWidth(300);
 
         Button btnFinalizar = new Button("Confirmar y Crear");
         btnFinalizar.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-weight: bold;");
@@ -794,7 +729,7 @@ public class HelloApplication extends Application {
 
                 String nombreLimpio = nombre.replaceAll("[^a-zA-Z0-9.-]", "_") + ".txt";
                 java.nio.file.Files.writeString(carpeta.resolve(nombreLimpio), descripcion);
-                System.out.println("Archivo TXT generado físicamente en: " + carpeta.toAbsolutePath());
+                System.out.println("Archivo TXT creado: " + carpeta.toAbsolutePath());
             } catch (IOException e) {
                 System.out.println("Error al crear el archivo: " + e.getMessage());
             }
@@ -815,20 +750,6 @@ public class HelloApplication extends Application {
         }
     }
 
-    private void crearArchivoTexto(String nombre, String contenido) {
-        try {
-            java.nio.file.Path ruta = java.nio.file.Paths.get("proyectos_archivos");
-            if (!java.nio.file.Files.exists(ruta)) {
-                java.nio.file.Files.createDirectories(ruta);
-            }
-
-            String nombreArchivo = nombre.replaceAll("[^a-zA-Z0-9.-]", "_") + ".txt";
-            java.nio.file.Files.writeString(ruta.resolve(nombreArchivo), contenido);
-            System.out.println("Archivo guardado: " + nombreArchivo);
-        } catch (IOException e) {
-            System.err.println("Error al crear el archivo físico: " + e.getMessage());
-        }
-    }
 
     private void mostrarVentanaEstadisticas(Stage stage, String nombreUsuario, String rol) {
         VBox layout = new VBox(20);

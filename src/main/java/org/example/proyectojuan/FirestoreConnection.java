@@ -57,8 +57,5 @@ public class FirestoreConnection {
         dataList.clear();
         query.forEach(d -> dataList.put(d.getId(), d.getData()));
     }
-
-
-
 }
 
