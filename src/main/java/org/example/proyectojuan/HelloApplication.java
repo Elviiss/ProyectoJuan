@@ -215,8 +215,14 @@ public class HelloApplication extends Application {
 
         mainLayout.getChildren().addAll(titulo, scroll, btnVolver);
 
-        Scene scene = new Scene(mainLayout, 600, 600);
-        stage.setScene(scene);
+        Scene consultoria = new Scene(mainLayout, 600, 600);
+        stage.setScene(consultoria);
+
+        try {
+            consultoria.getStylesheets().add(getClass().getResource("HelloApplication.css").toExternalForm());
+        } catch (Exception e) {
+            System.out.println("CSS no encontrado, continuando sin estilos externos.");
+        }
     }
 
     private void mostrarVentanaGestionUsuarios(Stage stage, String nombreUsuario, String rol) {
@@ -336,6 +342,12 @@ public class HelloApplication extends Application {
 
         Scene scene = new Scene(mainLayout, 600, 600);
         stage.setScene(scene);
+
+        try {
+            scene.getStylesheets().add(getClass().getResource("HelloApplication.css").toExternalForm());
+        } catch (Exception e) {
+            System.out.println("CSS no encontrado, continuando sin estilos externos.");
+        }
     }
 
     private void mostrarFormularioEditarUsuario(Stage stage, String nombreUsuario, String rolActual, int idAEditar) {
@@ -542,11 +554,14 @@ public class HelloApplication extends Application {
 
                     if (!"TXT".equalsIgnoreCase(tipo)) {
                         btnEditar.setDisable(true);
+                    }
+
+                    if (!"TXT".equalsIgnoreCase(tipo) && !"PDF".equalsIgnoreCase(tipo) && !"DOCX".equalsIgnoreCase(tipo)) {
                         btnDescargar.setDisable(true);
                     }
 
                     btnEditar.setOnAction(ev -> ventanaEditarContenidoTXT(stage, nombre, nombreUsuario, rol));
-                    btnDescargar.setOnAction(ev -> descargarArchivo(nombre));
+                    btnDescargar.setOnAction(ev -> descargarArchivo(nombre, tipo));
 
                     fila.getChildren().addAll(lblNombre, spacer, btnEditar, btnDescargar);
                     listaResultados.getChildren().add(fila);
@@ -566,6 +581,12 @@ public class HelloApplication extends Application {
 
         layout.getChildren().addAll(titulo, campoBusqueda, btnBuscar, new ScrollPane(listaResultados), btnVolver);
         stage.setScene(new Scene(layout, 600, 600));
+
+        try {
+            layout.getStylesheets().add(getClass().getResource("HelloApplication.css").toExternalForm());
+        } catch (Exception e) {
+            System.out.println("CSS no encontrado, continuando sin estilos externos.");
+        }
     }
 
     private void ventanaEditarContenidoTXT(Stage stage, String nombreProyecto, String user, String rol) {
@@ -596,10 +617,16 @@ public class HelloApplication extends Application {
         stage.setScene(new Scene(layout, 500, 400));
     }
 
-    private void descargarArchivo(String nombreProyecto) {
+    private void descargarArchivo(String nombreProyecto, String tipo) {
+        String extension = "." + tipo.toLowerCase();
+
         javafx.stage.FileChooser fileChooser = new javafx.stage.FileChooser();
-        fileChooser.setTitle("Guardar Proyecto");
-        fileChooser.setInitialFileName(nombreProyecto + ".txt");
+        fileChooser.setTitle("Descargar Proyecto " + tipo);
+        fileChooser.setInitialFileName(nombreProyecto + extension);
+
+        fileChooser.getExtensionFilters().add(
+                new javafx.stage.FileChooser.ExtensionFilter(tipo + " files", "*" + extension)
+        );
 
         java.io.File destino = fileChooser.showSaveDialog(null);
         if (destino != null) {
@@ -637,7 +664,7 @@ public class HelloApplication extends Application {
         pickerFecha.setMaxWidth(300);
 
         ComboBox<String> comboTipo = new ComboBox<>();
-        comboTipo.getItems().addAll("PDF", "TXT", "DOCX", "Imagen", "Código");
+        comboTipo.getItems().addAll("PDF", "TXT", "DOCX");
         comboTipo.setPromptText("Tipo de Proyecto");
         comboTipo.setMaxWidth(300);
 
@@ -727,11 +754,21 @@ public class HelloApplication extends Application {
                 java.nio.file.Path carpeta = java.nio.file.Paths.get("proyectos_archivos");
                 if (!java.nio.file.Files.exists(carpeta)) java.nio.file.Files.createDirectories(carpeta);
 
-                String nombreLimpio = nombre.replaceAll("[^a-zA-Z0-9.-]", "_") + ".txt";
-                java.nio.file.Files.writeString(carpeta.resolve(nombreLimpio), descripcion);
-                System.out.println("Archivo TXT creado: " + carpeta.toAbsolutePath());
+                String nombreLimpio = nombre.replaceAll("[^a-zA-Z0-9.-]", "_");
+
+                switch (tipo.toUpperCase()) {
+                    case "TXT":
+                        java.nio.file.Files.writeString(carpeta.resolve(nombreLimpio + ".txt"), descripcion);
+                        break;
+                    case "PDF":
+                        crearPDF(carpeta.resolve(nombreLimpio + ".pdf").toString(), nombre, descripcion);
+                        break;
+                    case "DOCX":
+                        crearDocx(carpeta.resolve(nombreLimpio + ".docx").toString(), nombre, descripcion);
+                        break;
+                }
             } catch (IOException e) {
-                System.out.println("Error al crear el archivo: " + e.getMessage());
+                System.err.println("Error al crear archivo: " + e.getMessage());
             }
         }
         try (Connection conexion = DriverManager.getConnection(url, userBD, passBD);
@@ -747,6 +784,46 @@ public class HelloApplication extends Application {
 
         } catch (SQLException e) {
             System.err.println("Error al guardar proyecto: " + e.getMessage());
+        }
+    }
+
+    private void crearPDF(String ruta, String titulo, String contenido) {
+        try {
+            com.itextpdf.kernel.pdf.PdfWriter writer = new com.itextpdf.kernel.pdf.PdfWriter(ruta);
+            com.itextpdf.kernel.pdf.PdfDocument pdf = new com.itextpdf.kernel.pdf.PdfDocument(writer);
+            com.itextpdf.layout.Document documento = new com.itextpdf.layout.Document(pdf);
+
+            documento.add(new com.itextpdf.layout.element.Paragraph(titulo)
+                    .setBold().setFontSize(18));
+            documento.add(new com.itextpdf.layout.element.Paragraph(contenido));
+
+            documento.close();
+            System.out.println("PDF creado con éxito.");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void crearDocx(String ruta, String titulo, String contenido) {
+        try (org.apache.poi.xwpf.usermodel.XWPFDocument document = new org.apache.poi.xwpf.usermodel.XWPFDocument()) {
+            // Título
+            org.apache.poi.xwpf.usermodel.XWPFParagraph title = document.createParagraph();
+            org.apache.poi.xwpf.usermodel.XWPFRun titleRun = title.createRun();
+            titleRun.setText(titulo);
+            titleRun.setBold(true);
+            titleRun.setFontSize(20);
+
+            // Contenido
+            org.apache.poi.xwpf.usermodel.XWPFParagraph body = document.createParagraph();
+            org.apache.poi.xwpf.usermodel.XWPFRun bodyRun = body.createRun();
+            bodyRun.setText(contenido);
+
+            try (java.io.FileOutputStream out = new java.io.FileOutputStream(ruta)) {
+                document.write(out);
+            }
+            System.out.println("DOCX creado con éxito.");
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 

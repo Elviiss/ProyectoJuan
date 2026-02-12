@@ -9,8 +9,11 @@ module org.example.proyectojuan {
     requires com.google.api.apicommon;
     requires com.google.auth;
     requires google.cloud.core;
+    requires kernel;
+    requires layout;
+    requires org.apache.poi.ooxml;
 
 
-    opens org.example.proyectojuan to javafx.fxml, google.cloud.firestore;
+    opens org.example.proyectojuan to javafx.fxml, google.cloud.firestore, org.checkerframework.checker.qual, org.apache.poi.ooxml;
     exports org.example.proyectojuan;
 }
