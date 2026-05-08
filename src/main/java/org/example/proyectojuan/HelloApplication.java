@@ -31,7 +31,7 @@ public class HelloApplication extends Application {
 
     @Override
     public void start(Stage stage) {
-        stage.setTitle("Gestión de Proyectos");
+        stage.setTitle("Gestión de Directorios");
 
         ImageView logoView = new ImageView();
         try {
@@ -73,7 +73,7 @@ public class HelloApplication extends Application {
         loginLayout.setPadding(new Insets(25));
         loginLayout.getChildren().addAll(logoView, userNameLabel, userTextField, pwLabel, pwBox, btn, actiontarget);
 
-        Scene loginScene = new Scene(loginLayout, 600, 600);
+        Scene loginScene = new Scene(loginLayout, 800, 800);
 
         try {
             loginScene.getStylesheets().add(getClass().getResource("HelloApplication.css").toExternalForm());
@@ -116,10 +116,10 @@ public class HelloApplication extends Application {
         VBox contenidoCentral = new VBox(20);
         contenidoCentral.setAlignment(Pos.TOP_CENTER);
 
-        Label titulo = new Label("PANEL DE CONTROL: PROYECTOS");
+        Label titulo = new Label("PANEL DE CONTROL: DIRECTORIOS");
         titulo.setFont(Font.font("Arial", FontWeight.BOLD, 24));
 
-        Button btnCrear = new Button("Crear Nuevo Proyecto");
+        Button btnCrear = new Button("Nuevo Directorio");
         btnCrear.setMinWidth(200);
         btnCrear.setStyle("-fx-background-color: #2196F3; -fx-text-fill: white; -fx-font-weight: bold;");
         btnCrear.setOnAction(e -> mostrarFormularioNuevoProyecto(stage, nombreUsuario, rol));
@@ -129,7 +129,7 @@ public class HelloApplication extends Application {
             btnCrear.setManaged(false);
         }
 
-        Button btnVerProyectos = new Button("Ver Proyectos");
+        Button btnVerProyectos = new Button("Ver Directorio");
         btnVerProyectos.setMinWidth(200);
         btnVerProyectos.setStyle("-fx-background-color: #2196F3; -fx-text-fill: white; -fx-font-weight: bold;");
 
@@ -161,7 +161,7 @@ public class HelloApplication extends Application {
         contenidoCentral.getChildren().addAll(titulo, btnCrear, btnVerProyectos, btnGestionar, btnInforme, btnConsultoria);
         mainLayout.getChildren().addAll(topBar, contenidoCentral);
 
-        Scene proyectosScene = new Scene(mainLayout, 600, 600);
+        Scene proyectosScene = new Scene(mainLayout, 800, 800);
         stage.setScene(proyectosScene);
 
         try {
@@ -192,7 +192,7 @@ public class HelloApplication extends Application {
                 String accionLog = doc.getString("accion");
 
                 HBox fila = new HBox(15);
-                fila.setStyle("-fx-background-color: #f4f4f4; -fx-padding: 10; -fx-border-color: #ccc;");
+                fila.setStyle("-fx-background-color: #f44336; -fx-padding: 10; -fx-border-color: #ccc;");
                 fila.getChildren().addAll(
                         new Text(usuarioLog + ":"),
                         new Text(accionLog)
@@ -201,10 +201,10 @@ public class HelloApplication extends Application {
             }
 
         }  catch (Exception e) {
-        System.out.println("CAUSA DEL ERROR: " + e.getCause());
-        e.printStackTrace();
-        listaLogs.getChildren().add(new Text("Error: " + e.getMessage()));
-    }
+            System.out.println("CAUSA DEL ERROR: " + e.getCause());
+            e.printStackTrace();
+            listaLogs.getChildren().add(new Text("Error: " + e.getMessage()));
+        }
 
         ScrollPane scroll = new ScrollPane(listaLogs);
         scroll.setFitToWidth(true);
@@ -215,7 +215,7 @@ public class HelloApplication extends Application {
 
         mainLayout.getChildren().addAll(titulo, scroll, btnVolver);
 
-        Scene consultoria = new Scene(mainLayout, 600, 600);
+        Scene consultoria = new Scene(mainLayout, 800, 800);
         stage.setScene(consultoria);
 
         try {
@@ -340,7 +340,7 @@ public class HelloApplication extends Application {
 
         mainLayout.getChildren().addAll(titulo, listaUsuarios, botonesAccion, btnVolver);
 
-        Scene scene = new Scene(mainLayout, 600, 600);
+        Scene scene = new Scene(mainLayout, 800, 800);
         stage.setScene(scene);
 
         try {
@@ -390,7 +390,7 @@ public class HelloApplication extends Application {
         btnCancelar.setOnAction(e -> mostrarVentanaGestionUsuarios(stage, nombreUsuario, rolActual));
 
         layout.getChildren().addAll(titulo, new Label("Nombre:"), txtNombre, new Label("Email:"), txtEmail, new Label("Rol:"), comboRoles, btnActualizar, btnCancelar);
-        stage.setScene(new Scene(layout, 600, 600));
+        stage.setScene(new Scene(layout, 800, 800));
     }
 
     private void actualizarUsuarioBD(int id, String nombre, String email, int idRol) {
@@ -481,7 +481,7 @@ public class HelloApplication extends Application {
         });
 
         layout.getChildren().addAll(titulo, txtNombre, txtEmail, txtPass, comboRoles, btnGuardar, btnCancelar);
-        stage.setScene(new Scene(layout, 600, 600));
+        stage.setScene(new Scene(layout, 800, 800));
     }
 
     private void insertarUsuarioBD(String nombre, String email, String pass, int idRol) {
@@ -512,11 +512,11 @@ public class HelloApplication extends Application {
         layout.setAlignment(Pos.TOP_CENTER);
         layout.setPadding(new Insets(20));
 
-        Label titulo = new Label("BUSCADOR DE PROYECTOS");
+        Label titulo = new Label("BUSCADOR DE DIRECTORIOS");
         titulo.setFont(Font.font("Arial", FontWeight.BOLD, 20));
 
         TextField campoBusqueda = new TextField();
-        campoBusqueda.setPromptText("Escribe el nombre del proyecto...");
+        campoBusqueda.setPromptText("Escribe el nombre del directorio...");
         campoBusqueda.setMaxWidth(300);
 
         Button btnBuscar = new Button("Buscar");
@@ -529,7 +529,7 @@ public class HelloApplication extends Application {
             listaResultados.getChildren().clear(); // Borramos lo anterior
             String textoBusqueda = campoBusqueda.getText();
 
-            String sql = "SELECT nombre_proyecto, descripcion, tipo FROM proyectos WHERE nombre_proyecto LIKE ?";
+            String sql = "SELECT nombre_proyecto, tipo FROM proyectos WHERE nombre_proyecto LIKE ?";
 
             try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/aplicacion_usuarios_sge", "root", "root");
                  PreparedStatement pst = conn.prepareStatement(sql)) {
@@ -549,7 +549,7 @@ public class HelloApplication extends Application {
                     Region spacer = new Region();
                     HBox.setHgrow(spacer, Priority.ALWAYS);
 
-                    Button btnEditar = new Button("Editar");
+                    /*Button btnEditar = new Button("Editar");
                     Button btnDescargar = new Button("Descargar");
 
                     if (!"TXT".equalsIgnoreCase(tipo)) {
@@ -564,11 +564,22 @@ public class HelloApplication extends Application {
                     btnDescargar.setOnAction(ev -> descargarArchivo(nombre, tipo));
 
                     fila.getChildren().addAll(lblNombre, spacer, btnEditar, btnDescargar);
+                     */
+
+                    Button btnVerMas = new Button("Ver más");
+                    btnVerMas.setStyle("-fx-background-color: #2196F3; -fx-text-fill: white;");
+
+                    btnVerMas.setOnAction(ev -> mostrarDetallesProyecto(stage, nombre, nombreUsuario, rol));
+
+                    fila.getChildren().addAll(lblNombre, spacer, btnVerMas);
+
+
+
                     listaResultados.getChildren().add(fila);
                 }
 
                 if (listaResultados.getChildren().isEmpty()) {
-                    listaResultados.getChildren().add(new Label("No se encontraron proyectos con: " + textoBusqueda));
+                    listaResultados.getChildren().add(new Label("No se encontraron directorios con: " + textoBusqueda));
                 }
 
             } catch (SQLException ex) {
@@ -580,13 +591,55 @@ public class HelloApplication extends Application {
         btnVolver.setOnAction(e -> mostrarVentanaProyectos(stage, nombreUsuario, rol));
 
         layout.getChildren().addAll(titulo, campoBusqueda, btnBuscar, new ScrollPane(listaResultados), btnVolver);
-        stage.setScene(new Scene(layout, 600, 600));
+        stage.setScene(new Scene(layout, 800, 800));
 
         try {
             layout.getStylesheets().add(getClass().getResource("HelloApplication.css").toExternalForm());
         } catch (Exception e) {
             System.out.println("CSS no encontrado, continuando sin estilos externos.");
         }
+    }
+
+    private void mostrarDetallesProyecto(Stage stage, String nombreP, String user, String rol) {
+        VBox layout = new VBox(15);
+        layout.setAlignment(Pos.CENTER);
+        layout.setPadding(new Insets(30));
+
+        Label titulo = new Label("DETALLES DEL DIRECTORIO");
+        titulo.setFont(Font.font("Arial", FontWeight.BOLD, 22));
+
+        VBox infoBox = new VBox(10);
+        infoBox.setAlignment(Pos.CENTER_LEFT);
+        infoBox.setStyle("-fx-background-color: #f9f9f9; -fx-padding: 20; -fx-border-color: #ccc;");
+
+        String sql = "SELECT * FROM proyectos WHERE nombre_proyecto = ?";
+
+        try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/aplicacion_usuarios_sge", "root", "root");
+             PreparedStatement pst = conn.prepareStatement(sql)) {
+
+            pst.setString(1, nombreP);
+            ResultSet rs = pst.executeQuery();
+
+            if (rs.next()) {
+                infoBox.getChildren().addAll(
+                        new Label("Nombre: " + rs.getString("nombre_proyecto")),
+                        new Label("Fecha Inicio: " + rs.getDate("fecha_inicio")),
+                        new Label("Fecha Final: " + rs.getDate("fecha_final")),
+                        new Label("Tipo: " + rs.getString("tipo")),
+                        new Label("Estado: " + rs.getString("estado")),
+                        new Label("Calificación: " + rs.getInt("calificacion")),
+                        new Label("Jefe de Proyecto: " + rs.getString("jefe"))
+                );
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        Button btnVolver = new Button("Volver a la lista");
+        btnVolver.setOnAction(e -> mostrarVentanaListaProyectos(stage, user, rol));
+
+        layout.getChildren().addAll(titulo, infoBox, btnVolver);
+        stage.setScene(new Scene(layout, 600, 600));
     }
 
     private void ventanaEditarContenidoTXT(Stage stage, String nombreProyecto, String user, String rol) {
@@ -648,25 +701,39 @@ public class HelloApplication extends Application {
         formularioLayout.setAlignment(Pos.CENTER);
         formularioLayout.setPadding(new Insets(30));
 
-        Label titulo = new Label("NUEVO PROYECTO");
+        Label titulo = new Label("NUEVO DIRECTORIO");
         titulo.setFont(Font.font("Arial", FontWeight.BOLD, 22));
 
         TextField txtNombre = new TextField();
-        txtNombre.setPromptText("Nombre del proyecto");
+        txtNombre.setPromptText("Nombre del directorio");
         txtNombre.setMaxWidth(300);
 
-        TextField txtDescripcion = new TextField();
-        txtDescripcion.setPromptText("Descripción del proyecto");
-        txtDescripcion.setMaxWidth(300);
+        DatePicker pickerFechaInicio = new DatePicker();
+        pickerFechaInicio.setPromptText("Fecha de inicio");
+        pickerFechaInicio.setMaxWidth(300);
 
-        DatePicker pickerFecha = new DatePicker();
-        pickerFecha.setPromptText("Selecciona la fecha");
-        pickerFecha.setMaxWidth(300);
+        DatePicker pickerFechaFinal = new DatePicker();
+        pickerFechaFinal.setPromptText("Fecha final");
+        pickerFechaFinal.setMaxWidth(300);
 
         ComboBox<String> comboTipo = new ComboBox<>();
-        comboTipo.getItems().addAll("PDF", "TXT", "DOCX");
+        comboTipo.getItems().addAll("Interno", "Externo", "Especial");
         comboTipo.setPromptText("Tipo de Proyecto");
         comboTipo.setMaxWidth(300);
+
+        ComboBox<String> comboEstado = new ComboBox<>();
+        comboEstado.getItems().addAll("Borrador", "En Curso", "Finalizado");
+        comboEstado.setPromptText("Estado");
+        comboEstado.setMaxWidth(300);
+
+        ComboBox<Integer> comboCalificacion = new ComboBox<>();
+        comboCalificacion.getItems().addAll(1, 2, 3, 4, 5);
+        comboCalificacion.setPromptText("Calificación");
+        comboCalificacion.setMaxWidth(300);
+
+        TextField txtJefe = new TextField();
+        txtJefe.setPromptText("Jefe de Proyecto");
+        txtJefe.setMaxWidth(300);
 
         Button btnFinalizar = new Button("Confirmar y Crear");
         btnFinalizar.setStyle("-fx-background-color: #4CAF50; -fx-text-fill: white; -fx-font-weight: bold;");
@@ -674,19 +741,21 @@ public class HelloApplication extends Application {
 
         Button btnVolver = new Button("Cancelar");
         btnVolver.setOnAction(e -> mostrarVentanaProyectos(stage, nombreUsuario, rol));
+
         btnFinalizar.setOnAction(e -> {
             String nombre = txtNombre.getText();
-            String descripcion = txtDescripcion.getText();
-            java.sql.Date fecha = (pickerFecha.getValue() != null)
-                    ? java.sql.Date.valueOf(pickerFecha.getValue())
-                    : null;
-            String tipo = (comboTipo.getValue() != null) ? comboTipo.getValue() : "Desconocido";
+            java.sql.Date fIni = (pickerFechaInicio.getValue() != null) ? java.sql.Date.valueOf(pickerFechaInicio.getValue()) : null;
+            java.sql.Date fFin = (pickerFechaFinal.getValue() != null) ? java.sql.Date.valueOf(pickerFechaFinal.getValue()) : null;
+            String tipo = (comboTipo.getValue() != null) ? comboTipo.getValue() : "";
+            String estado = (comboEstado.getValue() != null) ? comboEstado.getValue() : "";
+            int calif = (comboCalificacion.getValue() != null) ? comboCalificacion.getValue() : 0;
+            String jefe = txtJefe.getText();
 
             if (!nombre.isEmpty()) {
-                guardarProyecto(nombre, descripcion, fecha, tipo);
+                guardarProyecto(nombre, fIni, fFin, tipo, estado, calif, jefe);
 
                 try {
-                    Auditoria log = new Auditoria("Proyecto Creado: " + nombre, nombreUsuario);
+                    Auditoria log = new Auditoria("Directorio Creado: " + nombre, nombreUsuario);
                     FirestoreConnection.getInstance().registrarActividad(log);
                 } catch (Exception ex) {
                     ex.printStackTrace();
@@ -694,20 +763,23 @@ public class HelloApplication extends Application {
 
                 mostrarVentanaProyectos(stage, nombreUsuario, rol);
             } else {
-                System.out.println("El nombre del proyecto es obligatorio");
+                System.out.println("El nombre del directorio es obligatorio");
             }
         });
 
         formularioLayout.getChildren().addAll(
                 titulo,
                 new Label("Nombre:"), txtNombre,
-                new Label("Descripción:"), txtDescripcion,
-                new Label("Fecha:"), pickerFecha,
+                new Label("Fecha Inicio:"), pickerFechaInicio,
+                new Label("Fecha Final:"), pickerFechaFinal,
                 new Label("Tipo:"), comboTipo,
+                new Label("Estado:"), comboEstado,
+                new Label("Calificación:"), comboCalificacion,
+                new Label("Jefe de Proyecto:"), txtJefe,
                 btnFinalizar, btnVolver
         );
 
-        Scene sceneForm = new Scene(formularioLayout, 600, 600);
+        Scene sceneForm = new Scene(formularioLayout, 800, 800);
         stage.setScene(sceneForm);
 
         try {
@@ -743,47 +815,29 @@ public class HelloApplication extends Application {
         return null;
     }
 
-    private void guardarProyecto(String nombre, String descripcion, java.sql.Date fecha, String tipo) {
+    private void guardarProyecto(String nombre, java.sql.Date fechaInicio, java.sql.Date fechaFinal, String tipo, String estado, int calificacion, String jefe) {
         String url = "jdbc:mysql://localhost:3306/aplicacion_usuarios_sge";
         String userBD = "root";
         String passBD = "root";
 
-        String sql = "INSERT INTO proyectos (nombre_proyecto, descripcion, fecha, tipo) VALUES (?, ?, ?, ?)";
-        if ("TXT".equalsIgnoreCase(tipo)) {
-            try {
-                java.nio.file.Path carpeta = java.nio.file.Paths.get("proyectos_archivos");
-                if (!java.nio.file.Files.exists(carpeta)) java.nio.file.Files.createDirectories(carpeta);
+        String sql = "INSERT INTO proyectos (nombre_proyecto, fecha_inicio, fecha_final, tipo, estado, calificacion, jefe) VALUES (?, ?, ?, ?, ?, ?, ?)";
 
-                String nombreLimpio = nombre.replaceAll("[^a-zA-Z0-9.-]", "_");
-
-                switch (tipo.toUpperCase()) {
-                    case "TXT":
-                        java.nio.file.Files.writeString(carpeta.resolve(nombreLimpio + ".txt"), descripcion);
-                        break;
-                    case "PDF":
-                        crearPDF(carpeta.resolve(nombreLimpio + ".pdf").toString(), nombre, descripcion);
-                        break;
-                    case "DOCX":
-                        crearDocx(carpeta.resolve(nombreLimpio + ".docx").toString(), nombre, descripcion);
-                        break;
-                }
-            } catch (IOException e) {
-                System.err.println("Error al crear archivo: " + e.getMessage());
-            }
-        }
         try (Connection conexion = DriverManager.getConnection(url, userBD, passBD);
              PreparedStatement pst = conexion.prepareStatement(sql)) {
 
             pst.setString(1, nombre);
-            pst.setString(2, descripcion);
-            pst.setDate(3, fecha);
+            pst.setDate(2, fechaInicio);
+            pst.setDate(3, fechaFinal);
             pst.setString(4, tipo);
+            pst.setString(5, estado);
+            pst.setInt(6, calificacion);
+            pst.setString(7, jefe);
 
             pst.executeUpdate();
-            System.out.println("Proyecto guardado con éxito en la BD");
+            System.out.println("Directorio guardado con éxito en la BD");
 
         } catch (SQLException e) {
-            System.err.println("Error al guardar proyecto: " + e.getMessage());
+            System.err.println("Error al guardar directorio: " + e.getMessage());
         }
     }
 
@@ -863,7 +917,7 @@ public class HelloApplication extends Application {
 
         layout.getChildren().addAll(titulo, chartsContainer, btnVolver);
 
-        Scene scene = new Scene(layout, 600, 600);
+        Scene scene = new Scene(layout, 800, 800);
         stage.setScene(scene);
 
         try {
