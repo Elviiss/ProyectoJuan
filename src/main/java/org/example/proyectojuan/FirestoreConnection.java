@@ -17,7 +17,7 @@ public class FirestoreConnection {
 
     private FirestoreConnection() throws IOException {
         if(FirebaseApp.getApps().isEmpty()){
-            try (FileInputStream in = new FileInputStream("proyecto-juan-8d7c7-firebase-adminsdk-fbsvc-3be229da57.json")){
+            try (FileInputStream in = new FileInputStream("proyecto-juan-8d7c7-firebase-adminsdk-fbsvc-94e91865f8.json")){
                 FirebaseOptions options = FirebaseOptions.builder()
                         .setCredentials(GoogleCredentials.fromStream(in))
                         .build();
