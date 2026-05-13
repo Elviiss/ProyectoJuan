@@ -12,8 +12,14 @@ module org.example.proyectojuan {
     requires kernel;
     requires layout;
     requires org.apache.poi.ooxml;
+    requires java.desktop;
 
 
-    opens org.example.proyectojuan to javafx.fxml, google.cloud.firestore, org.checkerframework.checker.qual, org.apache.poi.ooxml;
+    opens org.example.proyectojuan to
+            javafx.fxml,
+            google.cloud.firestore,
+            org.checkerframework.checker.qual,
+            org.apache.poi.ooxml;
+
     exports org.example.proyectojuan;
 }

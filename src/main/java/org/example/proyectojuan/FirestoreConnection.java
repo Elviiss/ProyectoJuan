@@ -17,7 +17,10 @@ public class FirestoreConnection {
 
     private FirestoreConnection() throws IOException {
         if(FirebaseApp.getApps().isEmpty()){
-            try (FileInputStream in = new FileInputStream("proyecto-juan-8d7c7-firebase-adminsdk-fbsvc-94e91865f8.json")){
+            try (java.io.InputStream in = getClass().getResourceAsStream("/serviceAccountKey.json")) {
+                if (in == null) {
+                    throw new IOException("No se encontró el archivo serviceAccountKey.json en resources");
+                }
                 FirebaseOptions options = FirebaseOptions.builder()
                         .setCredentials(GoogleCredentials.fromStream(in))
                         .build();
@@ -45,17 +48,23 @@ public class FirestoreConnection {
     public HashMap<String, Object> getDataList() { return dataList; }
 
 
-    public void registrarActividad(Auditoria a) throws java.util.concurrent.ExecutionException, InterruptedException {
-        db.collection("consultoria").document()
-                .set(new java.util.HashMap<String, Object>() {{
-                    put("accion", a.getAccion());
-                    put("usuario", a.getUsuario());
-                    put("fecha", com.google.cloud.Timestamp.now().toString());
-                }}).get();
+    public void registrarActividad(Auditoria log) {
+        try {
+            Firestore db = getInstance().db();
+            // Usamos un Map para asegurar que los nombres de los campos sean exactos
+            java.util.Map<String, Object> datos = new java.util.HashMap<>();
+            datos.put("usuario", log.getUsuario());
+            datos.put("accion", log.getAccion());
+            datos.put("fecha", com.google.cloud.Timestamp.now());
 
-        var query = db.collection("consultoria").get().get();
-        dataList.clear();
-        query.forEach(d -> dataList.put(d.getId(), d.getData()));
+            // El .get() al final es CRUCIAL: obliga a Java a esperar a que Firebase responda
+            db.collection("consultoria").add(datos).get();
+
+            System.out.println("Log guardado en Firestore: " + log.getAccion());
+        } catch (Exception e) {
+            System.err.println("Error al guardar en Firestore: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 }
 

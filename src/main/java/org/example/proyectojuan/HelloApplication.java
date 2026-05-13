@@ -85,7 +85,6 @@ public class HelloApplication extends Application {
         stage.show();
     }
 
-
     private void mostrarVentanaProyectos(Stage stage, String nombreUsuario, String rol) {
         VBox mainLayout = new VBox(20);
         mainLayout.setPadding(new Insets(10, 20, 20, 20));
@@ -139,7 +138,7 @@ public class HelloApplication extends Application {
         btnConsultoria.setMinWidth(200);
         btnConsultoria.setStyle("-fx-background-color: #2196F3; -fx-text-fill: white; -fx-font-weight: bold;");
 
-        btnConsultoria.setOnAction(e -> mostrarVentanaConsultoria(stage, nombreUsuario, rol));
+        btnConsultoria.setOnAction(e -> mostrarVentanaConsultoria(rol));
 
         Button btnGestionar = new Button("Gestionar Usuarios");
         btnGestionar.setMinWidth(200);
@@ -171,58 +170,38 @@ public class HelloApplication extends Application {
         }
     }
 
-    private void mostrarVentanaConsultoria(Stage stage, String nombreUsuario, String rol) {
-        VBox mainLayout = new VBox(20);
-        mainLayout.setAlignment(Pos.TOP_CENTER);
-        mainLayout.setPadding(new Insets(20));
+    public void mostrarVentanaConsultoria(String user) {
+        Stage stage = new Stage();
+        VBox layout = new VBox(10);
+        layout.setPadding(new javafx.geometry.Insets(20));
 
-        Label titulo = new Label("CONSULTORÍA: REGISTRO DE ACTIVIDAD");
-        titulo.setFont(Font.font("Arial", FontWeight.BOLD, 22));
-
-        VBox listaLogs = new VBox(10);
-        listaLogs.setPadding(new Insets(10));
+        ListView<String> listaLogs = new ListView<>();
 
         try {
             Firestore db = FirestoreConnection.getInstance().db();
 
-            var querySnapshot = db.collection("consultoria").get().get();
+            db.collection("consultoria")
+                    .orderBy("fecha", com.google.cloud.firestore.Query.Direction.DESCENDING)
+                    .get()
+                    .get()
+                    .getDocuments()
+                    .forEach(doc -> {
+                        String usuario = doc.getString("usuario");
+                        String accion = doc.getString("accion");
+                        Object fecha = doc.get("fecha");
 
-            for (var doc : querySnapshot.getDocuments()) {
-                String usuarioLog = doc.getString("usuario");
-                String accionLog = doc.getString("accion");
+                        listaLogs.getItems().add("[" + fecha + "] " + usuario + ": " + accion);
+                    });
 
-                HBox fila = new HBox(15);
-                fila.setStyle("-fx-background-color: #f4f4f4; -fx-padding: 10; -fx-border-color: #ccc;");
-                fila.getChildren().addAll(
-                        new Text(usuarioLog + ":"),
-                        new Text(accionLog)
-                );
-                listaLogs.getChildren().add(fila);
-            }
-
-        }  catch (Exception e) {
-        System.out.println("CAUSA DEL ERROR: " + e.getCause());
-        e.printStackTrace();
-        listaLogs.getChildren().add(new Text("Error: " + e.getMessage()));
-    }
-
-        ScrollPane scroll = new ScrollPane(listaLogs);
-        scroll.setFitToWidth(true);
-        scroll.setPrefHeight(400);
-
-        Button btnVolver = new Button("Volver al Panel");
-        btnVolver.setOnAction(e -> mostrarVentanaProyectos(stage, nombreUsuario, rol));
-
-        mainLayout.getChildren().addAll(titulo, scroll, btnVolver);
-
-        Scene consultoria = new Scene(mainLayout, 600, 600);
-        stage.setScene(consultoria);
-
-        try {
-            consultoria.getStylesheets().add(getClass().getResource("HelloApplication.css").toExternalForm());
         } catch (Exception e) {
-            System.out.println("CSS no encontrado, continuando sin estilos externos.");
+            e.printStackTrace();
+            listaLogs.getItems().add("Error al cargar la consultoría.");
         }
+
+        layout.getChildren().addAll(new Label("Historial de Actividad (Consultoría):"), listaLogs);
+        stage.setScene(new Scene(layout, 500, 400));
+        stage.setTitle("Panel de Auditoría");
+        stage.show();
     }
 
     private void mostrarVentanaGestionUsuarios(Stage stage, String nombreUsuario, String rol) {
@@ -516,7 +495,7 @@ public class HelloApplication extends Application {
         titulo.setFont(Font.font("Arial", FontWeight.BOLD, 20));
 
         TextField campoBusqueda = new TextField();
-        campoBusqueda.setPromptText("Escribe el nombre del proyecto...");
+        campoBusqueda.setPromptText("Buscar por nombre...");
         campoBusqueda.setMaxWidth(300);
 
         Button btnBuscar = new Button("Buscar");
@@ -524,122 +503,228 @@ public class HelloApplication extends Application {
 
         VBox listaResultados = new VBox(10);
         listaResultados.setPadding(new Insets(10));
+        ScrollPane scroll = new ScrollPane(listaResultados);
+        scroll.setFitToWidth(true);
 
-        btnBuscar.setOnAction(e -> {
-            listaResultados.getChildren().clear(); // Borramos lo anterior
-            String textoBusqueda = campoBusqueda.getText();
-
-            String sql = "SELECT nombre_proyecto, descripcion, tipo FROM proyectos WHERE nombre_proyecto LIKE ?";
+        EventHandler<ActionEvent> buscarAccion = e -> {
+            listaResultados.getChildren().clear();
+            String texto = campoBusqueda.getText();
+            String sql = "SELECT id_proyecto, nombre_proyecto, tipo FROM proyectos WHERE nombre_proyecto LIKE ?";
 
             try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/aplicacion_usuarios_sge", "root", "root");
                  PreparedStatement pst = conn.prepareStatement(sql)) {
 
-                pst.setString(1, "%" + textoBusqueda + "%");
+                pst.setString(1, "%" + texto + "%");
                 ResultSet rs = pst.executeQuery();
 
                 while (rs.next()) {
+                    int id = rs.getInt("id_proyecto");
                     String nombre = rs.getString("nombre_proyecto");
                     String tipo = rs.getString("tipo");
 
                     HBox fila = new HBox(10);
                     fila.setAlignment(Pos.CENTER_LEFT);
-                    fila.setStyle("-fx-background-color: #eeeeee; -fx-padding: 10; -fx-border-radius: 5;");
+                    fila.setStyle("-fx-background-color: #eeeeee; -fx-padding: 10; -fx-border-radius: 5; -fx-cursor: hand;");
 
                     Label lblNombre = new Label(nombre + " [" + tipo + "]");
                     Region spacer = new Region();
                     HBox.setHgrow(spacer, Priority.ALWAYS);
 
-                    Button btnEditar = new Button("Editar");
-                    Button btnDescargar = new Button("Descargar");
+                    Button btnVer = new Button("Ver Detalles");
+                    btnVer.setOnAction(ev -> mostrarDetallesProyecto(stage, id, nombreUsuario, rol));
 
-                    if (!"TXT".equalsIgnoreCase(tipo)) {
-                        btnEditar.setDisable(true);
-                    }
-
-                    if (!"TXT".equalsIgnoreCase(tipo) && !"PDF".equalsIgnoreCase(tipo) && !"DOCX".equalsIgnoreCase(tipo)) {
-                        btnDescargar.setDisable(true);
-                    }
-
-                    btnEditar.setOnAction(ev -> ventanaEditarContenidoTXT(stage, nombre, nombreUsuario, rol));
-                    btnDescargar.setOnAction(ev -> descargarArchivo(nombre, tipo));
-
-                    fila.getChildren().addAll(lblNombre, spacer, btnEditar, btnDescargar);
+                    fila.getChildren().addAll(lblNombre, spacer, btnVer);
                     listaResultados.getChildren().add(fila);
                 }
+            } catch (SQLException ex) { ex.printStackTrace(); }
+        };
 
-                if (listaResultados.getChildren().isEmpty()) {
-                    listaResultados.getChildren().add(new Label("No se encontraron proyectos con: " + textoBusqueda));
-                }
-
-            } catch (SQLException ex) {
-                ex.printStackTrace();
-            }
-        });
+        btnBuscar.setOnAction(buscarAccion);
+        buscarAccion.handle(new ActionEvent());
 
         Button btnVolver = new Button("Volver al Panel");
         btnVolver.setOnAction(e -> mostrarVentanaProyectos(stage, nombreUsuario, rol));
 
-        layout.getChildren().addAll(titulo, campoBusqueda, btnBuscar, new ScrollPane(listaResultados), btnVolver);
+        layout.getChildren().addAll(titulo, campoBusqueda, btnBuscar, scroll, btnVolver);
         stage.setScene(new Scene(layout, 600, 600));
+    }
 
-        try {
-            layout.getStylesheets().add(getClass().getResource("HelloApplication.css").toExternalForm());
-        } catch (Exception e) {
-            System.out.println("CSS no encontrado, continuando sin estilos externos.");
+    private void mostrarDetallesProyecto(Stage stage, int idProy, String user, String rol) {
+        HBox root = new HBox(30);
+        root.setPadding(new Insets(20));
+        root.setStyle("-fx-background-color: #f9f9f9;");
+
+        VBox infoCol = new VBox(15);
+        infoCol.setPrefWidth(250);
+        infoCol.setStyle("-fx-background-color: white; -fx-padding: 15; -fx-border-color: #ddd; -fx-border-radius: 5;");
+
+        Label sub1 = new Label("Detalles del Proyecto");
+        sub1.setFont(Font.font("Arial", FontWeight.BOLD, 16));
+        infoCol.getChildren().add(sub1);
+
+        try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/aplicacion_usuarios_sge", "root", "root")) {
+            String sqlProy = "SELECT * FROM proyectos WHERE id_proyecto = ?";
+            PreparedStatement pst = conn.prepareStatement(sqlProy);
+            pst.setInt(1, idProy);
+            ResultSet rs = pst.executeQuery();
+            if (rs.next()) {
+                infoCol.getChildren().addAll(
+                        new Label("ID: " + rs.getInt("id_proyecto")),
+                        new Label("Nombre: " + rs.getString("nombre_proyecto")),
+                        new Label("Tipo: " + rs.getString("tipo")),
+                        new Label("Estado: " + rs.getString("estado"))
+                );
+            }
+        } catch (SQLException e) { e.printStackTrace(); }
+
+        Button btnVolver = new Button("← Volver");
+        btnVolver.setOnAction(e -> mostrarVentanaListaProyectos(stage, user, rol));
+        infoCol.getChildren().add(btnVolver);
+
+        VBox docCol = new VBox(10);
+        HBox.setHgrow(docCol, Priority.ALWAYS);
+
+        Label sub2 = new Label("Gestión de Documentos");
+        sub2.setFont(Font.font("Arial", FontWeight.BOLD, 16));
+
+        ListView<String> listaDocs = new ListView<>();
+        listaDocs.setPrefHeight(400);
+
+        HBox acciones = new HBox(10);
+        acciones.setAlignment(Pos.CENTER_LEFT);
+
+        Button btnAddDoc = new Button("Añadir Archivo");
+        btnAddDoc.setStyle("-fx-background-color: #2196F3; -fx-text-fill: white;");
+
+        Button btnAbrirFisico = new Button("Abrir Selección");
+        btnAbrirFisico.setStyle("-fx-background-color: #FF9800; -fx-text-fill: white;");
+        btnAbrirFisico.setDisable(true);
+
+        Button btnDelDoc = new Button("Eliminar");
+        btnDelDoc.setStyle("-fx-background-color: #f44336; -fx-text-fill: white;");
+
+        listaDocs.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
+            btnAbrirFisico.setDisable(newVal == null);
+        });
+
+        btnAbrirFisico.setOnAction(e -> {
+            String sel = listaDocs.getSelectionModel().getSelectedItem();
+            if (sel != null) abrirArchivoExterno(sel);
+        });
+
+        btnAddDoc.setOnAction(e -> abrirDialogoNuevoDoc(idProy, listaDocs, user));
+
+        btnDelDoc.setOnAction(e -> {
+            String sel = listaDocs.getSelectionModel().getSelectedItem();
+            if (sel != null) {
+                eliminarDocumentoBD(sel, idProy, user);
+                actualizarListaDocumentos(listaDocs, idProy);
+            }
+        });
+
+        if ("lector".equalsIgnoreCase(rol)) {
+            btnAddDoc.setVisible(false);
+            btnDelDoc.setVisible(false);
+        }
+
+        acciones.getChildren().addAll(btnAddDoc, btnAbrirFisico, btnDelDoc);
+        actualizarListaDocumentos(listaDocs, idProy);
+
+        docCol.getChildren().addAll(sub2, listaDocs, acciones);
+        root.getChildren().addAll(infoCol, docCol);
+
+        stage.setScene(new Scene(root, 800, 500));
+    }
+
+    private void actualizarListaDocumentos(ListView<String> lista, int idProy) {
+        lista.getItems().clear();
+        String sql = "SELECT nombre_documento FROM documentos WHERE id_proyecto = ?";
+        try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/aplicacion_usuarios_sge", "root", "root");
+             PreparedStatement pst = conn.prepareStatement(sql)) {
+            pst.setInt(1, idProy);
+            ResultSet rs = pst.executeQuery();
+            while (rs.next()) {
+                lista.getItems().add(rs.getString("nombre_documento"));
+            }
+        } catch (SQLException e) { e.printStackTrace(); }
+    }
+
+    private void abrirDialogoNuevoDoc(int idProy, ListView<String> lista, String user) {
+        javafx.stage.FileChooser fileChooser = new javafx.stage.FileChooser();
+        fileChooser.setTitle("Seleccionar Documento");
+        fileChooser.getExtensionFilters().addAll(
+                new javafx.stage.FileChooser.ExtensionFilter("Documentos", "*.txt", "*.pdf", "*.docx")
+        );
+
+        java.io.File archivoSeleccionado = fileChooser.showOpenDialog(null);
+
+        if (archivoSeleccionado != null) {
+            try {
+                java.nio.file.Path carpetaDestino = java.nio.file.Paths.get("proyectos_archivos");
+                if (!java.nio.file.Files.exists(carpetaDestino)) {
+                    java.nio.file.Files.createDirectories(carpetaDestino);
+                }
+
+                String nombreFinal = idProy + "_" + archivoSeleccionado.getName();
+                java.nio.file.Path destino = carpetaDestino.resolve(nombreFinal);
+                java.nio.file.Files.copy(archivoSeleccionado.toPath(), destino, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+
+                try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/aplicacion_usuarios_sge", "root", "root")) {
+                    String sql = "INSERT INTO documentos (nombre_documento, id_proyecto, texto_documento) VALUES (?, ?, ?)";
+                    PreparedStatement pst = conn.prepareStatement(sql);
+                    pst.setString(1, nombreFinal);
+                    pst.setInt(2, idProy);
+                    pst.setString(3, "Archivo binario: " + nombreFinal);
+                    pst.executeUpdate();
+
+                    Auditoria log = new Auditoria("Subió archivo real: " + nombreFinal, user);
+                    FirestoreConnection.getInstance().registrarActividad(log);
+
+                    actualizarListaDocumentos(lista, idProy);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
 
-    private void ventanaEditarContenidoTXT(Stage stage, String nombreProyecto, String user, String rol) {
-        VBox layout = new VBox(10);
-        layout.setPadding(new Insets(20));
-
-        Label lbl = new Label("Editando contenido de: " + nombreProyecto);
-        TextArea areaTexto = new TextArea();
-
-        String nombreArchivo = "proyectos_archivos/" + nombreProyecto.replaceAll("[^a-zA-Z0-9.-]", "_") + ".txt";
-
+    private void eliminarDocumentoBD(String nombre, int idProy, String user) {
         try {
-            areaTexto.setText(java.nio.file.Files.readString(java.nio.file.Paths.get(nombreArchivo)));
-        } catch (IOException e) { areaTexto.setText("Error al cargar o archivo no encontrado."); }
+            try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/aplicacion_usuarios_sge", "root", "root")) {
+                String sql = "DELETE FROM documentos WHERE nombre_documento = ? AND id_proyecto = ?";
+                PreparedStatement pst = conn.prepareStatement(sql);
+                pst.setString(1, nombre);
+                pst.setInt(2, idProy);
+                pst.executeUpdate();
+            }
 
-        Button btnGuardar = new Button("Guardar Cambios");
-        btnGuardar.setOnAction(e -> {
-            try {
-                java.nio.file.Files.writeString(java.nio.file.Paths.get(nombreArchivo), areaTexto.getText());
-                mostrarVentanaListaProyectos(stage, user, rol);
-            } catch (IOException ex) { ex.printStackTrace(); }
-        });
+            java.io.File file = new java.io.File("proyectos_archivos/" + nombre);
+            if (file.exists()) {
+                if (file.delete()) {
+                    System.out.println("Archivo físico eliminado: " + nombre);
+                }
+            }
 
-        Button btnVolver = new Button("Volver");
-        btnVolver.setOnAction(e -> mostrarVentanaListaProyectos(stage, user, rol));
+            Auditoria log = new Auditoria("Eliminó permanentemente: " + nombre, user);
+            FirestoreConnection.getInstance().registrarActividad(log);
 
-        layout.getChildren().addAll(lbl, areaTexto, btnGuardar, btnVolver);
-        stage.setScene(new Scene(layout, 500, 400));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
-    private void descargarArchivo(String nombreProyecto, String tipo) {
-        String extension = "." + tipo.toLowerCase();
-
-        javafx.stage.FileChooser fileChooser = new javafx.stage.FileChooser();
-        fileChooser.setTitle("Descargar Proyecto " + tipo);
-        fileChooser.setInitialFileName(nombreProyecto + extension);
-
-        fileChooser.getExtensionFilters().add(
-                new javafx.stage.FileChooser.ExtensionFilter(tipo + " files", "*" + extension)
-        );
-
-        java.io.File destino = fileChooser.showSaveDialog(null);
-        if (destino != null) {
-            try {
-                String origenPath = "proyectos_archivos/" + nombreProyecto.replaceAll("[^a-zA-Z0-9.-]", "_") + ".txt";
-                java.nio.file.Files.copy(
-                        java.nio.file.Paths.get(origenPath),
-                        destino.toPath(),
-                        java.nio.file.StandardCopyOption.REPLACE_EXISTING
-                );
-            } catch (IOException e) {
-                e.printStackTrace();
+    private void abrirArchivoExterno(String nombreDoc) {
+        try {
+            java.io.File file = new java.io.File("proyectos_archivos/" + nombreDoc);
+            if (file.exists()) {
+                if (java.awt.Desktop.isDesktopSupported()) {
+                    java.awt.Desktop.getDesktop().open(file);
+                }
+            } else {
+                new Alert(Alert.AlertType.ERROR, "El archivo físico no se encuentra en la carpeta.").show();
             }
+        } catch (java.io.IOException e) {
+            e.printStackTrace();
         }
     }
 
@@ -749,7 +834,7 @@ public class HelloApplication extends Application {
         String passBD = "root";
 
         String sql = "INSERT INTO proyectos (nombre_proyecto, descripcion, fecha, tipo) VALUES (?, ?, ?, ?)";
-        if ("TXT".equalsIgnoreCase(tipo)) {
+        if (tipo != null) {
             try {
                 java.nio.file.Path carpeta = java.nio.file.Paths.get("proyectos_archivos");
                 if (!java.nio.file.Files.exists(carpeta)) java.nio.file.Files.createDirectories(carpeta);
@@ -806,14 +891,12 @@ public class HelloApplication extends Application {
 
     private void crearDocx(String ruta, String titulo, String contenido) {
         try (org.apache.poi.xwpf.usermodel.XWPFDocument document = new org.apache.poi.xwpf.usermodel.XWPFDocument()) {
-            // Título
             org.apache.poi.xwpf.usermodel.XWPFParagraph title = document.createParagraph();
             org.apache.poi.xwpf.usermodel.XWPFRun titleRun = title.createRun();
             titleRun.setText(titulo);
             titleRun.setBold(true);
             titleRun.setFontSize(20);
 
-            // Contenido
             org.apache.poi.xwpf.usermodel.XWPFParagraph body = document.createParagraph();
             org.apache.poi.xwpf.usermodel.XWPFRun bodyRun = body.createRun();
             bodyRun.setText(contenido);
@@ -826,7 +909,6 @@ public class HelloApplication extends Application {
             e.printStackTrace();
         }
     }
-
 
     private void mostrarVentanaEstadisticas(Stage stage, String nombreUsuario, String rol) {
         VBox layout = new VBox(20);
