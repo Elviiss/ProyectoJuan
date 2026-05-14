@@ -5,38 +5,44 @@ import com.google.cloud.firestore.Firestore;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
 import com.google.firebase.cloud.FirestoreClient;
-
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.HashMap;
+import java.io.InputStream;
 
 public class FirestoreConnection {
-    static Firestore db;
-    static HashMap<String, Object> dataList;
+    private static Firestore db;
     private static volatile FirestoreConnection INSTANCE;
 
-    private FirestoreConnection() throws IOException {
-        if(FirebaseApp.getApps().isEmpty()){
-            try (java.io.InputStream in = getClass().getResourceAsStream("/serviceAccountKey.json")) {
+    private FirestoreConnection() {
+        try {
+            if (FirebaseApp.getApps().isEmpty()) {
+                InputStream in = getClass().getResourceAsStream("/serviceAccountKey.json");
+
                 if (in == null) {
-                    throw new IOException("No se encontró el archivo serviceAccountKey.json en resources");
+                    in = Thread.currentThread().getContextClassLoader().getResourceAsStream("serviceAccountKey.json");
                 }
+
+                if (in == null) {
+                    throw new IOException("❌ ERROR: No se encontró serviceAccountKey.json en src/main/resources");
+                }
+
                 FirebaseOptions options = FirebaseOptions.builder()
                         .setCredentials(GoogleCredentials.fromStream(in))
                         .build();
+
                 FirebaseApp.initializeApp(options);
+                System.out.println("🔥 Firebase inicializado correctamente.");
             }
+            db = FirestoreClient.getFirestore();
+        } catch (IOException e) {
+            System.err.println("❌ Error al iniciar Firebase: " + e.getMessage());
         }
-        db = FirestoreClient.getFirestore();
-        dataList = new java.util.HashMap<String, Object>();
     }
 
     public static FirestoreConnection getInstance() {
-        if (INSTANCE == null){
-            synchronized (FirestoreConnection.class){
-                if(INSTANCE == null) {
-                    try { INSTANCE = new FirestoreConnection(); }
-                    catch (IOException e) { throw new RuntimeException(e);}
+        if (INSTANCE == null) {
+            synchronized (FirestoreConnection.class) {
+                if (INSTANCE == null) {
+                    INSTANCE = new FirestoreConnection();
                 }
             }
         }
@@ -45,26 +51,23 @@ public class FirestoreConnection {
 
     public Firestore db() { return db; }
 
-    public HashMap<String, Object> getDataList() { return dataList; }
-
-
+    /**
+     * Registra la actividad real en la colección 'consultoria'
+     * @param log Objeto Auditoria con la acción, usuario y timestamp reales.
+     */
     public void registrarActividad(Auditoria log) {
         try {
-            Firestore db = getInstance().db();
-            // Usamos un Map para asegurar que los nombres de los campos sean exactos
-            java.util.Map<String, Object> datos = new java.util.HashMap<>();
-            datos.put("usuario", log.getUsuario());
-            datos.put("accion", log.getAccion());
-            datos.put("fecha", com.google.cloud.Timestamp.now());
+            // Usamos la instancia de la base de datos
+            Firestore database = FirestoreConnection.getInstance().db();
 
-            // El .get() al final es CRUCIAL: obliga a Java a esperar a que Firebase responda
-            db.collection("consultoria").add(datos).get();
+            // Enviamos el objeto 'log' directamente.
+            // Firebase lo convertirá automáticamente usando los getters de la clase Auditoria.
+            database.collection("consultoria").add(log).get();
 
-            System.out.println("Log guardado en Firestore: " + log.getAccion());
+            System.out.println("✅ Actividad registrada en el historial: " + log.getAccion());
         } catch (Exception e) {
-            System.err.println("Error al guardar en Firestore: " + e.getMessage());
+            System.err.println("❌ ERROR AL REGISTRAR ACTIVIDAD: " + e.getMessage());
             e.printStackTrace();
         }
     }
 }
-
