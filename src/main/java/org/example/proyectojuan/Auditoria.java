@@ -8,7 +8,9 @@ public class Auditoria {
     private String usuario;
     private com.google.cloud.Timestamp fecha; // Campo para Firebase
 
-    public Auditoria() {}
+    public Auditoria() {
+
+    }
 
     public Auditoria(String accion, String usuario, com.google.cloud.Timestamp fecha) {
         this.accion = accion;

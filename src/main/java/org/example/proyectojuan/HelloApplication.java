@@ -252,8 +252,6 @@ public class HelloApplication extends Application {
 
         Button btnBorrar = new Button("Borrar Usuario");
         btnBorrar.setStyle("-fx-background-color: #f44336; -fx-text-fill: white;");
-
-
         btnBorrar.setOnAction(e -> {
             String idTexto = txtIdBorrar.getText();
             if (!idTexto.isEmpty()) {
@@ -470,12 +468,10 @@ public class HelloApplication extends Application {
         VBox listaResultados = new VBox(10);
         listaResultados.setPadding(new Insets(10));
 
-        // Contenedor con scroll para los resultados
         ScrollPane scrollPane = new ScrollPane(listaResultados);
         scrollPane.setFitToWidth(true);
         scrollPane.setPrefHeight(400);
 
-        // LÓGICA DE CARGA Y BÚSQUEDA
         Runnable actualizarLista = () -> {
             listaResultados.getChildren().clear();
             String textoBusqueda = campoBusqueda.getText();
@@ -516,10 +512,8 @@ public class HelloApplication extends Application {
             }
         };
 
-        // Acciones de los botones
         btnBuscar.setOnAction(e -> actualizarLista.run());
 
-        // Ejecutar carga automática al abrir la ventana
         actualizarLista.run();
 
         Button btnVolver = new Button("Volver al Panel");
@@ -573,7 +567,6 @@ public class HelloApplication extends Application {
         btnVolver.setOnAction(e -> mostrarVentanaListaProyectos(stage, user, rol));
         infoCol.getChildren().add(btnVolver);
 
-        // Columna Derecha: Gestión de Archivos (Nuestra lógica)
         VBox docCol = new VBox(10);
         HBox.setHgrow(docCol, Priority.ALWAYS);
 
@@ -629,7 +622,6 @@ public class HelloApplication extends Application {
         Label titulo = new Label("HISTORIAL DE AUDITORÍA (FIREBASE)");
         titulo.setFont(Font.font("Arial", FontWeight.BOLD, 22));
 
-        // Definición de la Tabla
         TableView<Auditoria> tabla = new TableView<>();
 
         TableColumn<Auditoria, String> colFecha = new TableColumn<>("Fecha y Hora");
@@ -646,23 +638,19 @@ public class HelloApplication extends Application {
 
         tabla.getColumns().addAll(colFecha, colUsuario, colAccion);
 
-        // Carga de datos desde Firebase
         try {
             Firestore db = FirestoreConnection.getInstance().db();
-            // El orderBy asegura que lo del 14 de mayo salga arriba de lo del 13
             db.collection("consultoria")
                     .orderBy("fecha", com.google.cloud.firestore.Query.Direction.DESCENDING)
                     .get()
                     .get()
                     .getDocuments()
                     .forEach(doc -> {
-                        // Firebase mapea automáticamente los campos si Auditoria tiene constructor vacío
                         Auditoria log = doc.toObject(Auditoria.class);
                         if (log != null) tabla.getItems().add(log);
                     });
         } catch (Exception e) {
             System.err.println("Error al cargar Firebase: " + e.getMessage());
-            // Feedback visual en caso de error
             tabla.setPlaceholder(new Label("Error al conectar con Firebase o falta de índice."));
         }
 
@@ -874,10 +862,8 @@ public class HelloApplication extends Application {
             if (filasAfectadas > 0) {
                 System.out.println("✅ MySQL: Proyecto guardado correctamente.");
 
-                // --- BLOQUE DE FIREBASE ---
                 try {
                     Auditoria log = new Auditoria("Directorio Creado: " + nombre, nombreUsuario, com.google.cloud.Timestamp.now());
-                    // Usamos get() para forzar a Java a esperar a que Firebase responda
                     FirestoreConnection.getInstance().db()
                             .collection("consultoria")
                             .add(log)
@@ -888,13 +874,13 @@ public class HelloApplication extends Application {
                     System.err.println("❌ Error crítico en Firebase: " + ex.getMessage());
                     ex.printStackTrace();
                 }
-                // ---------------------------
             }
 
         } catch (SQLException e) {
             System.err.println("❌ Error en MySQL: " + e.getMessage());
         }
     }
+
     private void mostrarVentanaEstadisticas(Stage stage, String nombreUsuario, String rol) {
         VBox layout = new VBox(20);
         layout.setAlignment(Pos.CENTER);

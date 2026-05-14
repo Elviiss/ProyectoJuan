@@ -22,7 +22,7 @@ public class FirestoreConnection {
                 }
 
                 if (in == null) {
-                    throw new IOException("❌ ERROR: No se encontró serviceAccountKey.json en src/main/resources");
+                    throw new IOException(" ERROR: No se encontró serviceAccountKey.json en src/main/resources");
                 }
 
                 FirebaseOptions options = FirebaseOptions.builder()
@@ -30,7 +30,6 @@ public class FirestoreConnection {
                         .build();
 
                 FirebaseApp.initializeApp(options);
-                System.out.println("🔥 Firebase inicializado correctamente.");
             }
             db = FirestoreClient.getFirestore();
         } catch (IOException e) {
@@ -51,17 +50,10 @@ public class FirestoreConnection {
 
     public Firestore db() { return db; }
 
-    /**
-     * Registra la actividad real en la colección 'consultoria'
-     * @param log Objeto Auditoria con la acción, usuario y timestamp reales.
-     */
     public void registrarActividad(Auditoria log) {
         try {
-            // Usamos la instancia de la base de datos
             Firestore database = FirestoreConnection.getInstance().db();
 
-            // Enviamos el objeto 'log' directamente.
-            // Firebase lo convertirá automáticamente usando los getters de la clase Auditoria.
             database.collection("consultoria").add(log).get();
 
             System.out.println("✅ Actividad registrada en el historial: " + log.getAccion());
